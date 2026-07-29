@@ -112,8 +112,11 @@ export default function IssueForm({
         setSubmitting(false);
         return;
       }
-      router.push(`/issues/${data.issue.id}`);
-      router.refresh();
+      // A full navigation (not router.push) so a slow/cold-starting DB on the
+      // destination page just shows the browser's own loading state instead
+      // of leaving this button stuck on "저장 중..." if the client-side
+      // transition stalls.
+      window.location.href = `/issues/${data.issue.id}`;
     } catch (err) {
       console.error(err);
       setError("저장 중 오류가 발생했습니다.");
