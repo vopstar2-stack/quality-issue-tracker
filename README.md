@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 품질관리 이슈 트래커
 
-## Getting Started
+품질 이슈(발생일자/제품명/부품명/제조업체/발생위치/발생국가/시리얼번호/수량/설명/진행상황/처리자)를 등록·조회·수정하고,
+이슈 상세 화면에서 카카오톡으로 요약 내용을 발송할 수 있는 웹 애플리케이션입니다.
 
-First, run the development server:
+## 기술 스택
+
+- Next.js 16 (App Router, TypeScript)
+- Tailwind CSS 4
+- Postgres (Vercel Postgres, `pg` 클라이언트로 접속. 최초 요청 시 테이블 자동 생성)
+- 카카오 로그인 JS SDK ("나에게 보내기" 방식으로 처리자 본인에게 요약 발송)
+- Vercel 배포 (누구나 인터넷으로 접속 가능, 별도 로그인 없음 — 접근 제어가 없다는 뜻이니 필요해지면 추가할 것)
+
+## 실행 방법
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+로컬에서 실행하려면 `.env.local`에 `POSTGRES_URL`이 있어야 합니다(Vercel 프로젝트와 연결한 뒤
+`vercel env pull .env.local`로 받아오는 게 가장 쉽습니다). 브라우저에서 http://localhost:3000 접속.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 카카오톡 발송 기능 설정
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+이 프로젝트는 카카오 로그인 후 **로그인한 사용자 본인의 카카오톡으로** 이슈 요약을 보내는 "나에게 보내기" 방식입니다.
+처리자가 본인 카카오 계정으로 로그인한 뒤 버튼을 누르면 됩니다(제3자에게 자동 발송은 아닙니다).
 
-## Learn More
+카카오 JS SDK v2는 팝업 로그인을 지원하지 않고 **페이지 전체가 카카오 로그인 화면으로 이동한 뒤 다시 돌아오는 방식**만
+지원합니다. 그래서 로그인 코드를 토큰으로 교환하는 작업은 브라우저가 아니라 우리 서버(`/api/kakao/callback`)에서
+처리하며, 이때 **REST API 키**가 별도로 필요합니다.
 
-To learn more about Next.js, take a look at the following resources:
+1. https://developers.kakao.com 에서 애플리케이션 생성
+2. **제품 설정 > 카카오 로그인**에서 활성화 설정을 ON
+3. **제품 설정 > 카카오톡 메시지** (카카오 로그인과는 별도의 메뉴) 에서 "카카오톡 메시지 사용"을 ON
+   - 이 제품을 켜야 동의항목 목록에 "카카오톡 메시지 전송"이 나타납니다.
+4. **카카오 로그인 > 동의항목**에서 "카카오톡 메시지 전송(talk_message)" 항목을 사용함으로 설정
+5. **앱 > 플랫폼 키**로 이동해 아래 두 키를 각각 설정합니다. (⚠️ 아래 도메인/Redirect URI는 **REST API 키가 아니라
+   실제로 `Kakao.Auth.authorize()` 호출에 쓰이는 JavaScript 키 카드에** 등록해야 합니다. REST API 키 쪽에 등록해도
+   콘솔이 허용은 해주지만, 로그인 요청 자체가 JS 키로 나가기 때문에 "KOE006 Admin Settings Issue" 오류가 납니다.)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   - **JavaScript 키** 카드 → **JavaScript SDK 도메인**에 `http://localhost:3000` 등록,
+     **카카오 로그인 리다이렉트 URI**에 `http://localhost:3000/api/kakao/callback` 등록 → 저장
+     - 입력 후 옆의 "+"를 눌러도 화면에 즉시 표시되지 않을 수 있습니다. 입력창에서 **Enter 키**를 누르면 바로
+       저장되며 목록 화면으로 돌아갑니다(그게 정상 동작입니다). 저장 후 카드에 "JS SDK 도메인", "로그인 리다이렉트
+       URI" 태그가 보이면 성공입니다.
+     - 도메인/URI는 프로토콜+호스트+포트까지만 정확히 입력하세요. 끝에 슬래시(`/`)나 경로가 붙으면 "유효하지 않은
+       URL Host" 오류가 납니다.
+   - **REST API 키** 카드 → 값 아래 "클라이언트 시크릿" 태그를 클릭 → **카카오 로그인** 항목의 "코드"를 복사
+     - 최근 정책으로 REST API 키를 새로 발급하면 **클라이언트 시크릿이 기본으로 켜져** 있습니다. 켜진 상태에서
+       `client_secret` 없이 토큰을 요청하면 "KOE010 Bad client credentials" 오류가 납니다. 이 코드를 아래
+       `KAKAO_CLIENT_SECRET`에 넣으면 해결됩니다(끄고 싶다면 "활성화" 토글을 OFF로 바꿔도 됩니다).
+6. 같은 **플랫폼 키** 화면에서 **JavaScript 키**와 **REST API 키** 값을 복사
+   - JavaScript 키는 브라우저에 노출돼도 되지만, **REST API 키와 클라이언트 시크릿은 서버 전용**이니
+     소스코드/화면공유로 노출하지 마세요.
+7. 프로젝트 루트에 `.env.local` 파일을 만들고 아래 내용 작성 (`.env.local.example` 참고)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   ```
+   NEXT_PUBLIC_KAKAO_JS_KEY=발급받은_JavaScript_키
+   KAKAO_REST_API_KEY=발급받은_REST_API_키
+   KAKAO_CLIENT_SECRET=REST_API_키_카드에서_복사한_클라이언트_시크릿_코드
+   ```
 
-## Deploy on Vercel
+8. 개발 서버 재시작 (`npm run dev`)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+설정이 없으면 발송 버튼은 비활성화되고, 클릭 시 안내 메시지가 표시됩니다. 발송 성공/실패 결과는 카카오 로그인 후
+이슈 상세 페이지로 돌아오면 상단에 배너로 표시됩니다(실패 시 구체적인 원인 메시지 포함).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> 참고: 이 방식은 무료이며 별도 심사가 필요 없지만, 로그인한 사용자 자신에게만 보낼 수 있습니다.
+> 처리자가 아닌 제3자의 번호로 직접 발송하려면 카카오 비즈니스 채널 + 알림톡(솔라피, NHN Cloud 등 중계업체)
+> 연동이 필요하며, 이는 별도 계약/템플릿 사전승인이 필요해 이번 구현 범위에는 포함하지 않았습니다.
+
+## 데이터 위치
+
+- Vercel Postgres. 연결 문자열은 `POSTGRES_URL` 환경변수 하나로 관리됩니다 (`src/lib/db.ts`).
+- 다른 Postgres 호스팅으로 옮기고 싶다면 `POSTGRES_URL` 값만 바꾸면 됩니다.
+
+## 주요 화면
+
+- `/` : 이슈 목록
+- `/issues/new` : 신규 이슈 등록
+- `/issues/[id]` : 이슈 상세/수정 + 카카오톡 요약 발송 + 삭제
