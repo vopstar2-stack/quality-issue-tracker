@@ -51,7 +51,7 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: idParam } = await params;
@@ -61,6 +61,11 @@ export async function DELETE(
   }
   if (!(await getIssue(id))) {
     return Response.json({ error: "이슈를 찾을 수 없습니다." }, { status: 404 });
+  }
+
+  const body = await request.json().catch(() => null);
+  if (body?.code !== process.env.DELETE_CONFIRM_CODE) {
+    return Response.json({ error: "확인 코드가 올바르지 않습니다." }, { status: 403 });
   }
 
   const photos = await listPhotos(id);
