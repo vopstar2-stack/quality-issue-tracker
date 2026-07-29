@@ -20,6 +20,18 @@ export interface Issue {
   updated_at: string;
 }
 
+export interface IssueWithSeq extends Issue {
+  /** 등록 순서 기준 고정 번호 (id 오름차순). 정렬/검색/필터와 무관하게 동일한 이슈는 항상 같은 값을 가짐. */
+  seq_num: number;
+}
+
+export interface IssueFilters {
+  q?: string;
+  status?: string;
+  manufacturer?: string;
+  country?: string;
+}
+
 export interface IssueInput {
   title: string;
   occurred_at: string;

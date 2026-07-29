@@ -1,5 +1,5 @@
 import { query } from "./db";
-import type { Issue, IssueInput } from "./types";
+import type { Issue, IssueFilters, IssueInput, IssueWithSeq } from "./types";
 
 type IssueRow = Omit<Issue, "created_at" | "updated_at"> & {
   created_at: string | Date;
@@ -14,11 +14,62 @@ function toIssue(row: IssueRow): Issue {
   };
 }
 
-export async function listIssues(): Promise<Issue[]> {
-  const rows = await query<IssueRow>(
-    "SELECT * FROM issues ORDER BY occurred_at DESC, id DESC",
+export async function listIssues(filters: IssueFilters = {}): Promise<IssueWithSeq[]> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+  let paramIndex = 1;
+
+  if (filters.status) {
+    conditions.push(`status = $${paramIndex++}`);
+    params.push(filters.status);
+  }
+  if (filters.manufacturer) {
+    conditions.push(`manufacturer = $${paramIndex++}`);
+    params.push(filters.manufacturer);
+  }
+  if (filters.country) {
+    conditions.push(`country = $${paramIndex++}`);
+    params.push(filters.country);
+  }
+  if (filters.q) {
+    const p = paramIndex++;
+    conditions.push(`(
+      title ILIKE $${p} OR
+      product_name ILIKE $${p} OR
+      part_name ILIKE $${p} OR
+      manufacturer ILIKE $${p} OR
+      serial_number ILIKE $${p} OR
+      handler ILIKE $${p} OR
+      description ILIKE $${p} OR
+      location ILIKE $${p}
+    )`);
+    params.push(`%${filters.q}%`);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+  // seq_num is computed over ALL issues (in the "ranked" CTE, before the WHERE
+  // filter below is applied) so it always reflects true registration order —
+  // the same issue keeps the same number no matter what search/filter is active.
+  const rows = await query<IssueRow & { seq_num: string | number }>(
+    `WITH ranked AS (
+       SELECT *, ROW_NUMBER() OVER (ORDER BY id ASC) AS seq_num FROM issues
+     )
+     SELECT * FROM ranked
+     ${where}
+     ORDER BY occurred_at DESC, id DESC`,
+    params,
   );
-  return rows.map(toIssue);
+  return rows.map((row) => ({ ...toIssue(row), seq_num: Number(row.seq_num) }));
+}
+
+export async function listDistinctValues(
+  column: "manufacturer" | "country",
+): Promise<string[]> {
+  const rows = await query<{ value: string }>(
+    `SELECT DISTINCT ${column} AS value FROM issues WHERE ${column} IS NOT NULL AND ${column} <> '' ORDER BY value`,
+  );
+  return rows.map((row) => row.value);
 }
 
 export async function getIssue(id: number): Promise<Issue | undefined> {
