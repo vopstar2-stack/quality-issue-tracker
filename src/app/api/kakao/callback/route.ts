@@ -16,13 +16,6 @@ export async function GET(request: NextRequest) {
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const proto = request.headers.get("x-forwarded-proto") ?? "https";
   const origin = host ? `${proto}://${host}` : request.nextUrl.origin;
-  console.log(
-    "[kakao-callback] host=%s proto=%s nextUrl.origin=%s resolvedOrigin=%s",
-    host,
-    proto,
-    request.nextUrl.origin,
-    origin,
-  );
   const code = searchParams.get("code");
   const state = searchParams.get("state");
   const kakaoError = searchParams.get("error");

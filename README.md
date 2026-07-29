@@ -27,6 +27,15 @@
 - Vercel의 기본 "Deployment Protection(SSO)"는 프로젝트 생성 시 켜져 있고, 대표 도메인이 아닌 별칭
   도메인(`rayqc.vercel.app` 등)에는 로그인 요구 화면을 띄웁니다. 이 프로젝트는 누구나 접속해야 해서
   `npx vercel project protection disable quality-issue-tracker --sso`로 꺼두었습니다.
+- 배포가 `BLOCKED` 상태로 멈추고 안 넘어가면(`npx vercel ls`로 확인), Vercel이 보낸
+  "Failed deployment ... not a member of the team" 메일을 확인하세요. 로컬 git 커밋 이메일이 GitHub 계정의
+  인증된 이메일과 다르면, private 저장소에 대해 Vercel이 배포를 막습니다. 저장소를 public으로 바꾸면 해결됩니다
+  (Pro 결제 없이 되는 가장 쉬운 방법). 이 프로젝트도 그렇게 해서 public입니다 — `.env*`는 항상 `.gitignore`
+  처리되어 있으니 커밋 기록에 비밀키가 없는지 가끔 `git log --all -p -- .env.local`로 확인하세요.
+- `.vercel app` 별칭(`rayqc.vercel.app` 등 `vercel alias set`으로 직접 추가한 도메인)은 **그 순간의 배포에
+  고정**되고, 새로 배포해도 자동으로 안 따라옵니다(대표 도메인인 `quality-issue-tracker.vercel.app`만
+  자동으로 최신 배포를 가리킴). 배포할 때마다 `npx vercel alias set <새배포url> rayqc.vercel.app`을 다시
+  실행해야 `rayqc.vercel.app`이 최신 코드를 보여줍니다.
 
 ## 사진 저장 용량 참고
 
@@ -91,6 +100,13 @@ npm run dev
      (`npx vercel env add NEXT_PUBLIC_KAKAO_JS_KEY production`, 변경 후 `npx vercel --prod`로 재배포 필요)
    - `KAKAO_REST_API_KEY`, `KAKAO_CLIENT_SECRET`은 로컬/배포 동일한 값 사용
 7. `.env.local.example`을 참고해 로컬 `.env.local`을 채웁니다.
+8. **앱 > 제품 링크 관리 > 웹 도메인**의 "기본" 도메인을 실제 서비스 도메인(`https://rayqc.vercel.app`)으로
+   맞춰주세요. ⚠️ 여기 등록된 **"기본 웹 도메인"이 카카오톡 메시지의 링크(자세히 보기 버튼)에 강제로 적용됩니다** —
+   `/api/kakao/callback`에서 아무리 정확한 URL을 만들어 보내도, 여기 기본값이 옛날 도메인(예:
+   `http://127.0.0.1:3000`, 맨 처음 로컬 개발용으로 등록했던 값)으로 남아있으면 카톡 메시지의 "자세히 보기"
+   버튼이 그 옛날 도메인으로 열립니다. 서버 로그(`vercel logs`)로 origin 계산이 매번 정확한데도 링크만 이상하게
+   나온다면 100% 이 설정입니다. 최대 10개까지 등록 가능하니 로컬/배포 도메인을 같이 등록해두고, 배포 도메인을
+   기본으로 지정하세요.
 
 설정이 없으면 발송 버튼은 비활성화되고, 클릭 시 안내 메시지가 표시됩니다. 발송 성공/실패 결과는 카카오 로그인 후
 이슈 상세 페이지로 돌아오면 상단에 배너로 표시됩니다(실패 시 구체적인 원인 메시지 포함).
