@@ -4,6 +4,7 @@ export type IssueStatus = (typeof ISSUE_STATUSES)[number];
 
 export interface Issue {
   id: number;
+  title: string;
   occurred_at: string;
   product_name: string;
   part_name: string | null;
@@ -20,6 +21,7 @@ export interface Issue {
 }
 
 export interface IssueInput {
+  title: string;
   occurred_at: string;
   product_name: string;
   part_name?: string | null;

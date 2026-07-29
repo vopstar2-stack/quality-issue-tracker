@@ -38,7 +38,12 @@ export default async function IssueDetailPage({
       )}
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold">이슈 #{issue.id}</h1>
+        <h1 className="text-2xl font-bold">
+          {issue.title}
+          <span className="ml-2 text-sm font-normal text-neutral-400 dark:text-neutral-500">
+            #{issue.id}
+          </span>
+        </h1>
         <div className="flex items-start gap-3">
           <KakaoSendButton issue={issue} />
           <DeleteButton id={issue.id} />

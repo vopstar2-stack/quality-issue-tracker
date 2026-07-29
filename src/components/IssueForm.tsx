@@ -5,6 +5,7 @@ import { useState, type FormEvent, type ReactNode } from "react";
 import { ISSUE_STATUSES, type Issue, type IssueStatus } from "@/lib/types";
 
 interface FormValues {
+  title: string;
   occurred_at: string;
   product_name: string;
   part_name: string;
@@ -19,6 +20,7 @@ interface FormValues {
 }
 
 const emptyValues: FormValues = {
+  title: "",
   occurred_at: "",
   product_name: "",
   part_name: "",
@@ -34,6 +36,7 @@ const emptyValues: FormValues = {
 
 function valuesFromIssue(issue: Issue): FormValues {
   return {
+    title: issue.title,
     occurred_at: issue.occurred_at,
     product_name: issue.product_name,
     part_name: issue.part_name ?? "",
@@ -120,6 +123,16 @@ export default function IssueForm({
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <Field label="제목" required>
+        <input
+          required
+          value={values.title}
+          onChange={(e) => update("title", e.target.value)}
+          className={inputClass}
+          placeholder="예: 초음파 진단기 화면 노이즈 불량"
+        />
+      </Field>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="발생일자" required>
           <input

@@ -6,10 +6,12 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
   }
   const b = body as Record<string, unknown>;
 
+  const title = typeof b.title === "string" ? b.title.trim() : "";
   const occurred_at = typeof b.occurred_at === "string" ? b.occurred_at : "";
   const product_name = typeof b.product_name === "string" ? b.product_name.trim() : "";
   const status = typeof b.status === "string" ? b.status : "";
 
+  if (!title) return { error: "제목은 필수입니다." };
   if (!occurred_at) return { error: "발생일자는 필수입니다." };
   if (!product_name) return { error: "제품명은 필수입니다." };
   if (!ISSUE_STATUSES.includes(status as (typeof ISSUE_STATUSES)[number])) {
@@ -28,6 +30,7 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
     typeof v === "string" && v.trim() !== "" ? v.trim() : null;
 
   return {
+    title,
     occurred_at,
     product_name,
     part_name: asString(b.part_name),

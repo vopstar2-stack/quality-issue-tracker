@@ -28,7 +28,9 @@ export default async function HomePage() {
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
               <tr>
+                <th className="px-3 py-2">순번</th>
                 <th className="px-3 py-2">발생일자</th>
+                <th className="px-3 py-2">제목</th>
                 <th className="px-3 py-2">제품명</th>
                 <th className="px-3 py-2">부품명</th>
                 <th className="px-3 py-2">제조업체</th>
@@ -41,9 +43,13 @@ export default async function HomePage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {issues.map((issue) => (
+              {issues.map((issue, index) => (
                 <tr key={issue.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900">
+                  <td className="px-3 py-2 text-neutral-500 dark:text-neutral-400">
+                    {index + 1}
+                  </td>
                   <td className="px-3 py-2">{issue.occurred_at}</td>
+                  <td className="px-3 py-2 font-medium">{issue.title}</td>
                   <td className="px-3 py-2 font-medium">{issue.product_name}</td>
                   <td className="px-3 py-2">{issue.part_name ?? "-"}</td>
                   <td className="px-3 py-2">{issue.manufacturer ?? "-"}</td>

@@ -29,10 +29,11 @@ export async function getIssue(id: number): Promise<Issue | undefined> {
 export async function createIssue(input: IssueInput): Promise<Issue> {
   const rows = await query<IssueRow>(
     `INSERT INTO issues
-      (occurred_at, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status, handler)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      (title, occurred_at, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status, handler)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
+      input.title,
       input.occurred_at,
       input.product_name,
       input.part_name ?? null,
@@ -52,21 +53,23 @@ export async function createIssue(input: IssueInput): Promise<Issue> {
 export async function updateIssue(id: number, input: IssueInput): Promise<Issue | undefined> {
   const rows = await query<IssueRow>(
     `UPDATE issues SET
-      occurred_at = $1,
-      product_name = $2,
-      part_name = $3,
-      manufacturer = $4,
-      location = $5,
-      country = $6,
-      serial_number = $7,
-      quantity = $8,
-      description = $9,
-      status = $10,
-      handler = $11,
+      title = $1,
+      occurred_at = $2,
+      product_name = $3,
+      part_name = $4,
+      manufacturer = $5,
+      location = $6,
+      country = $7,
+      serial_number = $8,
+      quantity = $9,
+      description = $10,
+      status = $11,
+      handler = $12,
       updated_at = now()
-     WHERE id = $12
+     WHERE id = $13
      RETURNING *`,
     [
+      input.title,
       input.occurred_at,
       input.product_name,
       input.part_name ?? null,

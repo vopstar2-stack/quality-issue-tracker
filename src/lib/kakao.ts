@@ -14,7 +14,8 @@ export function ensureKakaoInitialized(): boolean {
 
 export function buildIssueSummaryMessage(issue: Issue): string {
   return [
-    `[품질이슈 알림] ${issue.product_name}`,
+    `[품질이슈 알림] ${issue.title}`,
+    `제품명: ${issue.product_name}`,
     `발생일자: ${issue.occurred_at}`,
     `부품명: ${issue.part_name ?? "-"}`,
     `제조업체: ${issue.manufacturer ?? "-"}`,

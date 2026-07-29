@@ -41,6 +41,9 @@ async function ensureSchema(pool: Pool): Promise<void> {
     )
   `);
   await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT ''
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS issue_photos (
       id SERIAL PRIMARY KEY,
       issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
