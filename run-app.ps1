@@ -1,1 +1,1 @@
-Start-Process "https://quality-issue-tracker.vercel.app"
+Start-Process "https://rayqc.vercel.app"

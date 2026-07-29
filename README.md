@@ -3,7 +3,7 @@
 품질 이슈(발생일자/제품명/부품명/제조업체/발생위치/발생국가/시리얼번호/수량/설명/진행상황/처리자)를 등록·조회·수정하고,
 불량 사진을 첨부하고, 이슈 상세 화면에서 카카오톡으로 요약 내용을 발송할 수 있는 웹 애플리케이션입니다.
 
-**배포 주소: https://quality-issue-tracker.vercel.app** (인터넷 어디서나 접속 가능, 로그인 없음)
+**배포 주소: https://rayqc.vercel.app** (인터넷 어디서나 접속 가능, 로그인 없음)
 
 > ⚠️ 로그인/비밀번호 등 접근 제어가 없습니다. 이 주소를 아는 사람은 누구나 이슈를 보고, 등록하고, 수정·삭제할 수
 > 있습니다. 의도적으로 이렇게 만들었지만(요청사항), 필요해지면 간단한 공용 비밀번호 정도는 나중에 추가할 수 있습니다.
@@ -23,6 +23,10 @@
 - 수동 배포: `npx vercel --prod`
 - 환경변수 확인/추가: `npx vercel env ls` / `npx vercel env add <이름> production`
   (`NEXT_PUBLIC_*`는 클라이언트 번들에 굳혀 들어가므로, 값 변경 후 반드시 재배포해야 반영됩니다.)
+- 짧은 별칭 도메인 추가: `npx vercel alias set <기존도메인> <새이름>.vercel.app`
+- Vercel의 기본 "Deployment Protection(SSO)"는 프로젝트 생성 시 켜져 있고, 대표 도메인이 아닌 별칭
+  도메인(`rayqc.vercel.app` 등)에는 로그인 요구 화면을 띄웁니다. 이 프로젝트는 누구나 접속해야 해서
+  `npx vercel project protection disable quality-issue-tracker --sso`로 꺼두었습니다.
 
 ## 사진 저장 용량 참고
 
@@ -66,8 +70,10 @@ npm run dev
      아니라 단일 값이 덮어써짐). 그래서 이 프로젝트는 **JS 키를 2개** 씁니다:
      - `Default JS Key` — 로컬 개발용. 도메인 `http://localhost:3000`, Redirect URI
        `http://localhost:3000/api/kakao/callback`
-     - `Production (Vercel)` — 배포용. 도메인 `https://quality-issue-tracker.vercel.app`, Redirect URI
-       `https://quality-issue-tracker.vercel.app/api/kakao/callback`
+     - `Production (Vercel)` — 배포용. 도메인 `https://rayqc.vercel.app`, Redirect URI
+       `https://rayqc.vercel.app/api/kakao/callback`
+       (원래 도메인이던 `quality-issue-tracker.vercel.app`도 같은 배포를 가리키는 별칭으로 계속 살아있지만,
+       카카오 로그인은 `rayqc.vercel.app`으로만 동작합니다.)
      - "JavaScript 키 추가"로 새 키를 만들 때 이름/도메인/Redirect URI를 같이 입력해 저장하면 됩니다.
      - 입력 후 옆의 "+"를 눌러도 화면에 즉시 표시되지 않을 수 있습니다. 입력창에서 **Enter 키**를 누르면 바로
        저장됩니다(그게 정상 동작입니다). 저장 후 카드에 "JS SDK 도메인", "로그인 리다이렉트 URI" 태그가 보이면
