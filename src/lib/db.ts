@@ -57,6 +57,21 @@ async function ensureSchema(pool: Pool): Promise<void> {
     UPDATE issues SET status = '처리없음' WHERE status = '보류'
   `);
   await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS cause TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_cause TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS countermeasure TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_countermeasure TEXT
+  `);
+  await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS conclusion TEXT
+  `);
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS issue_photos (
       id SERIAL PRIMARY KEY,
       issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,

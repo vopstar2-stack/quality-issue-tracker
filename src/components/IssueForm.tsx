@@ -23,6 +23,11 @@ interface FormValues {
   quantity: string;
   description: string;
   status: IssueStatus;
+  cause: string;
+  ai_estimated_cause: string;
+  countermeasure: string;
+  ai_estimated_countermeasure: string;
+  conclusion: string;
 }
 
 const emptyValues: FormValues = {
@@ -38,6 +43,11 @@ const emptyValues: FormValues = {
   quantity: "",
   description: "",
   status: ISSUE_STATUSES[0],
+  cause: "",
+  ai_estimated_cause: "",
+  countermeasure: "",
+  ai_estimated_countermeasure: "",
+  conclusion: "",
 };
 
 function valuesFromIssue(issue: Issue): FormValues {
@@ -54,6 +64,11 @@ function valuesFromIssue(issue: Issue): FormValues {
     quantity: issue.quantity !== null && issue.quantity !== undefined ? String(issue.quantity) : "",
     description: issue.description ?? "",
     status: issue.status,
+    cause: issue.cause ?? "",
+    ai_estimated_cause: issue.ai_estimated_cause ?? "",
+    countermeasure: issue.countermeasure ?? "",
+    ai_estimated_countermeasure: issue.ai_estimated_countermeasure ?? "",
+    conclusion: issue.conclusion ?? "",
   };
 }
 
@@ -80,6 +95,51 @@ function Field({
   );
 }
 
+function AiField({
+  label,
+  value,
+  onChange,
+  onEstimate,
+  estimating,
+  estimateError,
+  disabledHint,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  onEstimate?: () => void;
+  estimating?: boolean;
+  estimateError?: string;
+  disabledHint?: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 text-sm">
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-medium text-neutral-700 dark:text-neutral-300">{label}</span>
+        {onEstimate ? (
+          <button
+            type="button"
+            onClick={onEstimate}
+            disabled={estimating}
+            className="rounded-md border border-neutral-300 px-2 py-1 text-xs font-medium hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            {estimating ? "AI 추정 중..." : "AI로 추정하기"}
+          </button>
+        ) : disabledHint ? (
+          <span className="text-xs text-neutral-400 dark:text-neutral-500">{disabledHint}</span>
+        ) : null}
+      </div>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={4}
+        className={inputClass}
+      />
+      {estimateError && <p className="text-xs text-red-600">{estimateError}</p>}
+    </div>
+  );
+}
+
 export default function IssueForm({
   mode,
   issue,
@@ -98,8 +158,57 @@ export default function IssueForm({
   const [photoError, setPhotoError] = useState("");
   const stagedInputRef = useRef<HTMLInputElement>(null);
 
+  const [estimatingCause, setEstimatingCause] = useState(false);
+  const [causeEstimateError, setCauseEstimateError] = useState("");
+  const [estimatingCountermeasure, setEstimatingCountermeasure] = useState(false);
+  const [countermeasureEstimateError, setCountermeasureEstimateError] = useState("");
+
   function update<K extends keyof FormValues>(key: K, value: FormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleEstimateCause() {
+    if (!issue) return;
+    setCauseEstimateError("");
+    setEstimatingCause(true);
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/estimate-cause`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: values.description, cause: values.cause }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "AI 추정에 실패했습니다.");
+      update("ai_estimated_cause", data.text);
+    } catch (err) {
+      setCauseEstimateError(err instanceof Error ? err.message : "AI 추정에 실패했습니다.");
+    } finally {
+      setEstimatingCause(false);
+    }
+  }
+
+  async function handleEstimateCountermeasure() {
+    if (!issue) return;
+    setCountermeasureEstimateError("");
+    setEstimatingCountermeasure(true);
+    try {
+      const res = await fetch(`/api/issues/${issue.id}/estimate-countermeasure`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          description: values.description,
+          cause: values.cause || values.ai_estimated_cause,
+          countermeasure: values.countermeasure,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "AI 추정에 실패했습니다.");
+      update("ai_estimated_countermeasure", data.text);
+    } catch (err) {
+      setCountermeasureEstimateError(err instanceof Error ? err.message : "AI 추정에 실패했습니다.");
+    } finally {
+      setEstimatingCountermeasure(false);
+    }
   }
 
   const addStagedFiles = useCallback(async (files: File[]) => {
@@ -360,6 +469,56 @@ export default function IssueForm({
           rows={10}
           className={inputClass}
           placeholder="이슈 상세 내용을 입력하세요."
+        />
+      </Field>
+
+      <Field label="발생원인">
+        <textarea
+          value={values.cause}
+          onChange={(e) => update("cause", e.target.value)}
+          rows={4}
+          className={inputClass}
+          placeholder="불량의 발생원인을 입력하세요."
+        />
+      </Field>
+
+      <AiField
+        label="AI추정원인"
+        value={values.ai_estimated_cause}
+        onChange={(v) => update("ai_estimated_cause", v)}
+        onEstimate={mode === "edit" ? handleEstimateCause : undefined}
+        estimating={estimatingCause}
+        estimateError={causeEstimateError}
+        disabledHint={mode === "create" ? "등록 후 상세 페이지에서 사용 가능" : undefined}
+      />
+
+      <Field label="대책">
+        <textarea
+          value={values.countermeasure}
+          onChange={(e) => update("countermeasure", e.target.value)}
+          rows={4}
+          className={inputClass}
+          placeholder="재발 방지 대책을 입력하세요."
+        />
+      </Field>
+
+      <AiField
+        label="AI추정대책"
+        value={values.ai_estimated_countermeasure}
+        onChange={(v) => update("ai_estimated_countermeasure", v)}
+        onEstimate={mode === "edit" ? handleEstimateCountermeasure : undefined}
+        estimating={estimatingCountermeasure}
+        estimateError={countermeasureEstimateError}
+        disabledHint={mode === "create" ? "등록 후 상세 페이지에서 사용 가능" : undefined}
+      />
+
+      <Field label="결론">
+        <textarea
+          value={values.conclusion}
+          onChange={(e) => update("conclusion", e.target.value)}
+          rows={4}
+          className={inputClass}
+          placeholder="결론을 입력하세요."
         />
       </Field>
 

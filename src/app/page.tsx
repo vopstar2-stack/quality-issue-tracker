@@ -31,7 +31,33 @@ export default async function HomePage({
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold">품질 이슈 목록</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">Work Log</h1>
+          <Link
+            href="/"
+            aria-label="홈"
+            title="홈"
+            className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <path d="M3 11.5 12 4l9 7.5" />
+              <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+            </svg>
+          </Link>
+          <a
+            href="https://ray-service-crm.netlify.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="CRM"
+            title="CRM"
+            className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <rect x="4" y="3" width="16" height="18" rx="1" />
+              <path d="M9 8h1M9 12h1M9 16h6M14 8h1" />
+            </svg>
+          </a>
+        </div>
         <Link
           href="/issues/new"
           className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"

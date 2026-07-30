@@ -42,5 +42,10 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
     quantity,
     description: asString(b.description),
     status: status as IssueInput["status"],
+    cause: asString(b.cause),
+    ai_estimated_cause: asString(b.ai_estimated_cause),
+    countermeasure: asString(b.countermeasure),
+    ai_estimated_countermeasure: asString(b.ai_estimated_countermeasure),
+    conclusion: asString(b.conclusion),
   };
 }

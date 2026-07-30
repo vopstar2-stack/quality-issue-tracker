@@ -79,8 +79,8 @@ export async function getIssue(id: number): Promise<Issue | undefined> {
 export async function createIssue(input: IssueInput): Promise<Issue> {
   const rows = await query<IssueRow>(
     `INSERT INTO issues
-      (title, occurred_at, occurrence_date, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      (title, occurred_at, occurrence_date, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status, cause, ai_estimated_cause, countermeasure, ai_estimated_countermeasure, conclusion)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
      RETURNING *`,
     [
       input.title,
@@ -95,6 +95,11 @@ export async function createIssue(input: IssueInput): Promise<Issue> {
       input.quantity ?? null,
       input.description ?? null,
       input.status,
+      input.cause ?? null,
+      input.ai_estimated_cause ?? null,
+      input.countermeasure ?? null,
+      input.ai_estimated_countermeasure ?? null,
+      input.conclusion ?? null,
     ],
   );
   return toIssue(rows[0]);
@@ -115,8 +120,13 @@ export async function updateIssue(id: number, input: IssueInput): Promise<Issue 
       quantity = $10,
       description = $11,
       status = $12,
+      cause = $13,
+      ai_estimated_cause = $14,
+      countermeasure = $15,
+      ai_estimated_countermeasure = $16,
+      conclusion = $17,
       updated_at = now()
-     WHERE id = $13
+     WHERE id = $18
      RETURNING *`,
     [
       input.title,
@@ -131,6 +141,11 @@ export async function updateIssue(id: number, input: IssueInput): Promise<Issue 
       input.quantity ?? null,
       input.description ?? null,
       input.status,
+      input.cause ?? null,
+      input.ai_estimated_cause ?? null,
+      input.countermeasure ?? null,
+      input.ai_estimated_countermeasure ?? null,
+      input.conclusion ?? null,
       id,
     ],
   );
