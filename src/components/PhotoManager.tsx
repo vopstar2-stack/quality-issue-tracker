@@ -14,6 +14,7 @@ export default function PhotoManager({
   const [photos, setPhotos] = useState(initialPhotos);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [viewingPhoto, setViewingPhoto] = useState<IssuePhoto | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleFiles = useCallback(
@@ -68,6 +69,15 @@ export default function PhotoManager({
     return () => window.removeEventListener("paste", onPaste);
   }, [handleFiles]);
 
+  useEffect(() => {
+    if (!viewingPhoto) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setViewingPhoto(null);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [viewingPhoto]);
+
   async function handleDelete(photoId: number) {
     if (!confirm("이 사진을 삭제하시겠습니까?")) return;
     const res = await fetch(`/api/issues/${issueId}/photos/${photoId}`, {
@@ -88,8 +98,15 @@ export default function PhotoManager({
             key={photo.id}
             className="group relative h-28 w-28 overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-700"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={photo.url} alt="불량 사진" className="h-full w-full object-cover" />
+            <button
+              type="button"
+              onClick={() => setViewingPhoto(photo)}
+              className="block h-full w-full cursor-zoom-in"
+              aria-label="사진 크게 보기"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photo.url} alt="불량 사진" className="h-full w-full object-cover" />
+            </button>
             <button
               type="button"
               onClick={() => handleDelete(photo.id)}
@@ -121,6 +138,29 @@ export default function PhotoManager({
         복사한 이미지를 Ctrl+V로 붙여넣어도 추가됩니다.
       </p>
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {viewingPhoto && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setViewingPhoto(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setViewingPhoto(null)}
+            className="absolute right-4 top-4 rounded-full bg-black/60 px-3 py-1.5 text-sm text-white hover:bg-black/80"
+            aria-label="닫기"
+          >
+            ✕ 닫기
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={viewingPhoto.url}
+            alt="불량 사진 크게 보기"
+            className="max-h-full max-w-full rounded-md object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 }
