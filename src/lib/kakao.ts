@@ -28,22 +28,5 @@ export function buildIssueSummaryMessage(issue: Issue): string {
     "",
     "[내용]",
     issue.description && issue.description.length > 0 ? issue.description : "-",
-    "",
-    "[발생원인]",
-    issue.cause && issue.cause.length > 0 ? issue.cause : "-",
-    "",
-    "[AI추정원인]",
-    issue.ai_estimated_cause && issue.ai_estimated_cause.length > 0 ? issue.ai_estimated_cause : "-",
-    "",
-    "[대책]",
-    issue.countermeasure && issue.countermeasure.length > 0 ? issue.countermeasure : "-",
-    "",
-    "[AI추정대책]",
-    issue.ai_estimated_countermeasure && issue.ai_estimated_countermeasure.length > 0
-      ? issue.ai_estimated_countermeasure
-      : "-",
-    "",
-    "[결론]",
-    issue.conclusion && issue.conclusion.length > 0 ? issue.conclusion : "-",
   ].join("\n");
 }
