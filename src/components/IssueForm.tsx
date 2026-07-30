@@ -357,7 +357,7 @@ export default function IssueForm({
         <textarea
           value={values.description}
           onChange={(e) => update("description", e.target.value)}
-          rows={6}
+          rows={10}
           className={inputClass}
           placeholder="이슈 상세 내용을 입력하세요."
         />
