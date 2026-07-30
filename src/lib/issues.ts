@@ -56,7 +56,7 @@ export async function listIssues(filters: IssueFilters = {}): Promise<IssueWithS
      )
      SELECT * FROM ranked
      ${where}
-     ORDER BY occurred_at DESC, id DESC`,
+     ORDER BY id DESC`,
     params,
   );
   return rows.map((row) => ({ ...toIssue(row), seq_num: Number(row.seq_num) }));
