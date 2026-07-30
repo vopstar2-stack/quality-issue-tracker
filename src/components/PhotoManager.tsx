@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { resizeImageFile } from "@/lib/image-resize";
 import type { IssuePhoto } from "@/lib/photos";
 
@@ -16,34 +16,57 @@ export default function PhotoManager({
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    setError("");
-    setUploading(true);
-    try {
-      for (const file of Array.from(files)) {
-        const resized = await resizeImageFile(file);
-        const formData = new FormData();
-        const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
-        formData.append("file", resized, `${baseName}.jpg`);
+  const handleFiles = useCallback(
+    async (files: File[]) => {
+      if (files.length === 0) return;
+      setError("");
+      setUploading(true);
+      try {
+        for (const file of files) {
+          const resized = await resizeImageFile(file);
+          const formData = new FormData();
+          const baseName = file.name.replace(/\.[^.]+$/, "") || "photo";
+          formData.append("file", resized, `${baseName}.jpg`);
 
-        const res = await fetch(`/api/issues/${issueId}/photos`, {
-          method: "POST",
-          body: formData,
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error ?? "업로드에 실패했습니다.");
+          const res = await fetch(`/api/issues/${issueId}/photos`, {
+            method: "POST",
+            body: formData,
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error ?? "업로드에 실패했습니다.");
+          }
+          setPhotos((prev) => [...prev, data.photo]);
         }
-        setPhotos((prev) => [...prev, data.photo]);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "업로드 중 오류가 발생했습니다.");
+      } finally {
+        setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "업로드 중 오류가 발생했습니다.");
-    } finally {
-      setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
+    },
+    [issueId],
+  );
+
+  useEffect(() => {
+    function onPaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      const files: File[] = [];
+      for (const item of Array.from(items)) {
+        if (item.kind === "file" && item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) files.push(file);
+        }
+      }
+      if (files.length > 0) {
+        e.preventDefault();
+        handleFiles(files);
+      }
     }
-  }
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, [handleFiles]);
 
   async function handleDelete(photoId: number) {
     if (!confirm("이 사진을 삭제하시겠습니까?")) return;
@@ -92,8 +115,11 @@ export default function PhotoManager({
         accept="image/*"
         multiple
         className="hidden"
-        onChange={(e) => handleFiles(e.target.files)}
+        onChange={(e) => handleFiles(e.target.files ? Array.from(e.target.files) : [])}
       />
+      <p className="text-xs text-neutral-400 dark:text-neutral-500">
+        복사한 이미지를 Ctrl+V로 붙여넣어도 추가됩니다.
+      </p>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );

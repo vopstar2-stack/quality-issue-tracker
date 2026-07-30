@@ -16,7 +16,8 @@ export function buildIssueSummaryMessage(issue: Issue): string {
   return [
     `[품질이슈 알림] ${issue.title}`,
     `제품명: ${issue.product_name}`,
-    `발생일자: ${issue.occurred_at}`,
+    `접수일자: ${issue.occurred_at}`,
+    `발생일자: ${issue.occurrence_date ?? "-"}`,
     `부품명: ${issue.part_name ?? "-"}`,
     `제조업체: ${issue.manufacturer ?? "-"}`,
     `발생위치: ${issue.location ?? "-"}`,
@@ -24,7 +25,6 @@ export function buildIssueSummaryMessage(issue: Issue): string {
     `시리얼번호: ${issue.serial_number ?? "-"}`,
     `수량: ${issue.quantity ?? "-"}`,
     `진행상황: ${issue.status}`,
-    `처리자: ${issue.handler ?? "-"}`,
     "",
     "[내용]",
     issue.description && issue.description.length > 0 ? issue.description : "-",

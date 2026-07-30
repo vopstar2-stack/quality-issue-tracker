@@ -7,6 +7,7 @@ import { ISSUE_STATUSES, type Issue, type IssueStatus } from "@/lib/types";
 interface FormValues {
   title: string;
   occurred_at: string;
+  occurrence_date: string;
   product_name: string;
   part_name: string;
   manufacturer: string;
@@ -16,12 +17,12 @@ interface FormValues {
   quantity: string;
   description: string;
   status: IssueStatus;
-  handler: string;
 }
 
 const emptyValues: FormValues = {
   title: "",
   occurred_at: "",
+  occurrence_date: "",
   product_name: "",
   part_name: "",
   manufacturer: "",
@@ -31,13 +32,13 @@ const emptyValues: FormValues = {
   quantity: "",
   description: "",
   status: ISSUE_STATUSES[0],
-  handler: "",
 };
 
 function valuesFromIssue(issue: Issue): FormValues {
   return {
     title: issue.title,
     occurred_at: issue.occurred_at,
+    occurrence_date: issue.occurrence_date ?? "",
     product_name: issue.product_name,
     part_name: issue.part_name ?? "",
     manufacturer: issue.manufacturer ?? "",
@@ -47,7 +48,6 @@ function valuesFromIssue(issue: Issue): FormValues {
     quantity: issue.quantity !== null && issue.quantity !== undefined ? String(issue.quantity) : "",
     description: issue.description ?? "",
     status: issue.status,
-    handler: issue.handler ?? "",
   };
 }
 
@@ -137,12 +137,20 @@ export default function IssueForm({
       </Field>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Field label="발생일자" required>
+        <Field label="접수일자" required>
           <input
             type="date"
             required
             value={values.occurred_at}
             onChange={(e) => update("occurred_at", e.target.value)}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="발생일자">
+          <input
+            type="date"
+            value={values.occurrence_date}
+            onChange={(e) => update("occurrence_date", e.target.value)}
             className={inputClass}
           />
         </Field>
@@ -211,14 +219,6 @@ export default function IssueForm({
             value={values.quantity}
             onChange={(e) => update("quantity", e.target.value)}
             className={inputClass}
-          />
-        </Field>
-        <Field label="처리자">
-          <input
-            value={values.handler}
-            onChange={(e) => update("handler", e.target.value)}
-            className={inputClass}
-            placeholder="담당자 이름"
           />
         </Field>
       </div>

@@ -50,7 +50,7 @@ export default async function HomePage({
             type="text"
             name="q"
             defaultValue={filters.q ?? ""}
-            placeholder="제목/제품명/부품명/제조업체/시리얼번호/처리자/내용"
+            placeholder="제목/제품명/부품명/제조업체/시리얼번호/내용"
             className={selectClass}
           />
         </label>
@@ -115,7 +115,7 @@ export default async function HomePage({
             <thead className="bg-neutral-50 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
               <tr>
                 <th className="px-3 py-2">순번</th>
-                <th className="px-3 py-2">발생일자</th>
+                <th className="px-3 py-2">접수일자</th>
                 <th className="px-3 py-2">제목</th>
                 <th className="px-3 py-2">제품명</th>
                 <th className="px-3 py-2">부품명</th>
@@ -124,8 +124,6 @@ export default async function HomePage({
                 <th className="px-3 py-2">시리얼번호</th>
                 <th className="px-3 py-2">수량</th>
                 <th className="px-3 py-2">진행상황</th>
-                <th className="px-3 py-2">처리자</th>
-                <th className="px-3 py-2" />
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -135,7 +133,14 @@ export default async function HomePage({
                     {issue.seq_num}
                   </td>
                   <td className="px-3 py-2">{issue.occurred_at}</td>
-                  <td className="px-3 py-2 font-medium">{issue.title}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <Link
+                      href={`/issues/${issue.id}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {issue.title}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2 font-medium">{issue.product_name}</td>
                   <td className="px-3 py-2">{issue.part_name ?? "-"}</td>
                   <td className="px-3 py-2">{issue.manufacturer ?? "-"}</td>
@@ -144,15 +149,6 @@ export default async function HomePage({
                   <td className="px-3 py-2">{issue.quantity ?? "-"}</td>
                   <td className="px-3 py-2">
                     <StatusBadge status={issue.status} />
-                  </td>
-                  <td className="px-3 py-2">{issue.handler ?? "-"}</td>
-                  <td className="px-3 py-2 text-right">
-                    <Link
-                      href={`/issues/${issue.id}`}
-                      className="font-medium text-blue-600 hover:underline dark:text-blue-400"
-                    >
-                      상세보기
-                    </Link>
                   </td>
                 </tr>
               ))}

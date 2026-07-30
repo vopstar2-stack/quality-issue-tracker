@@ -34,7 +34,7 @@ async function ensureSchema(pool: Pool): Promise<void> {
       serial_number TEXT,
       quantity INTEGER,
       description TEXT,
-      status TEXT NOT NULL DEFAULT '접수',
+      status TEXT NOT NULL DEFAULT '진행중',
       handler TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -42,6 +42,19 @@ async function ensureSchema(pool: Pool): Promise<void> {
   `);
   await pool.query(`
     ALTER TABLE issues ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT ''
+  `);
+  // occurred_at is now labeled "접수일자" (reception date) in the UI; this new
+  // column holds the separate "발생일자" (actual defect occurrence date).
+  await pool.query(`
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS occurrence_date TEXT
+  `);
+  // Migrate rows still holding the old 5-value status set down to the new
+  // 3-value set (진행중/완료/처리없음). No-op once every row has been migrated.
+  await pool.query(`
+    UPDATE issues SET status = '진행중' WHERE status IN ('접수', '조사중', '조치중')
+  `);
+  await pool.query(`
+    UPDATE issues SET status = '처리없음' WHERE status = '보류'
   `);
   await pool.query(`
     CREATE TABLE IF NOT EXISTS issue_photos (

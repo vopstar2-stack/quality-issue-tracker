@@ -39,7 +39,6 @@ export async function listIssues(filters: IssueFilters = {}): Promise<IssueWithS
       part_name ILIKE $${p} OR
       manufacturer ILIKE $${p} OR
       serial_number ILIKE $${p} OR
-      handler ILIKE $${p} OR
       description ILIKE $${p} OR
       location ILIKE $${p}
     )`);
@@ -80,12 +79,13 @@ export async function getIssue(id: number): Promise<Issue | undefined> {
 export async function createIssue(input: IssueInput): Promise<Issue> {
   const rows = await query<IssueRow>(
     `INSERT INTO issues
-      (title, occurred_at, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status, handler)
+      (title, occurred_at, occurrence_date, product_name, part_name, manufacturer, location, country, serial_number, quantity, description, status)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
      RETURNING *`,
     [
       input.title,
       input.occurred_at,
+      input.occurrence_date ?? null,
       input.product_name,
       input.part_name ?? null,
       input.manufacturer ?? null,
@@ -95,7 +95,6 @@ export async function createIssue(input: IssueInput): Promise<Issue> {
       input.quantity ?? null,
       input.description ?? null,
       input.status,
-      input.handler ?? null,
     ],
   );
   return toIssue(rows[0]);
@@ -106,22 +105,23 @@ export async function updateIssue(id: number, input: IssueInput): Promise<Issue 
     `UPDATE issues SET
       title = $1,
       occurred_at = $2,
-      product_name = $3,
-      part_name = $4,
-      manufacturer = $5,
-      location = $6,
-      country = $7,
-      serial_number = $8,
-      quantity = $9,
-      description = $10,
-      status = $11,
-      handler = $12,
+      occurrence_date = $3,
+      product_name = $4,
+      part_name = $5,
+      manufacturer = $6,
+      location = $7,
+      country = $8,
+      serial_number = $9,
+      quantity = $10,
+      description = $11,
+      status = $12,
       updated_at = now()
      WHERE id = $13
      RETURNING *`,
     [
       input.title,
       input.occurred_at,
+      input.occurrence_date ?? null,
       input.product_name,
       input.part_name ?? null,
       input.manufacturer ?? null,
@@ -131,7 +131,6 @@ export async function updateIssue(id: number, input: IssueInput): Promise<Issue 
       input.quantity ?? null,
       input.description ?? null,
       input.status,
-      input.handler ?? null,
       id,
     ],
   );

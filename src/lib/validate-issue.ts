@@ -12,7 +12,7 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
   const status = typeof b.status === "string" ? b.status : "";
 
   if (!title) return { error: "제목은 필수입니다." };
-  if (!occurred_at) return { error: "발생일자는 필수입니다." };
+  if (!occurred_at) return { error: "접수일자는 필수입니다." };
   if (!product_name) return { error: "제품명은 필수입니다." };
   if (!ISSUE_STATUSES.includes(status as (typeof ISSUE_STATUSES)[number])) {
     return { error: "진행상황 값이 올바르지 않습니다." };
@@ -32,6 +32,7 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
   return {
     title,
     occurred_at,
+    occurrence_date: asString(b.occurrence_date),
     product_name,
     part_name: asString(b.part_name),
     manufacturer: asString(b.manufacturer),
@@ -41,6 +42,5 @@ export function parseIssueInput(body: unknown): IssueInput | { error: string } {
     quantity,
     description: asString(b.description),
     status: status as IssueInput["status"],
-    handler: asString(b.handler),
   };
 }
