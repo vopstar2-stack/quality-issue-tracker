@@ -20,12 +20,8 @@ export interface Issue {
   status: IssueStatus;
   /** 발생원인 (사용자 입력) */
   cause: string | null;
-  /** AI추정원인 */
-  ai_estimated_cause: string | null;
   /** 대책 (사용자 입력) */
   countermeasure: string | null;
-  /** AI추정대책 */
-  ai_estimated_countermeasure: string | null;
   /** 결론 (사용자 입력) */
   conclusion: string | null;
   created_at: string;
@@ -58,8 +54,6 @@ export interface IssueInput {
   description?: string | null;
   status: IssueStatus;
   cause?: string | null;
-  ai_estimated_cause?: string | null;
   countermeasure?: string | null;
-  ai_estimated_countermeasure?: string | null;
   conclusion?: string | null;
 }
