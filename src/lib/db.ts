@@ -94,6 +94,29 @@ async function ensureSchema(pool: Pool): Promise<void> {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  // 대체품이 여러 번에 나눠서(부분입고) 들어올 수 있어, 입고 1건당 한 행으로 기록한다.
+  // 출고수량과 이 테이블의 합계를 비교해 미입고/완료 여부를 계산한다.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tank_replacement_receipts (
+      id SERIAL PRIMARY KEY,
+      tank_replacement_id INTEGER NOT NULL REFERENCES tank_replacements(id) ON DELETE CASCADE,
+      inbound_date TEXT NOT NULL,
+      inbound_quantity INTEGER,
+      inbound_serial TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
+  // 위 receipts 테이블 도입 전에 tank_replacements 위에 직접 기록됐던 단일 입고값을
+  // 최초 1건의 receipt로 옮긴다(이미 옮겨진 건은 건너뛰는 멱등 처리).
+  await pool.query(`
+    INSERT INTO tank_replacement_receipts (tank_replacement_id, inbound_date, inbound_quantity, inbound_serial, created_at)
+    SELECT id, inbound_date, inbound_quantity, inbound_serial, updated_at
+    FROM tank_replacements
+    WHERE inbound_date IS NOT NULL
+      AND NOT EXISTS (
+        SELECT 1 FROM tank_replacement_receipts WHERE tank_replacement_id = tank_replacements.id
+      )
+  `);
 }
 
 export async function query<T>(text: string, params: unknown[] = []): Promise<T[]> {

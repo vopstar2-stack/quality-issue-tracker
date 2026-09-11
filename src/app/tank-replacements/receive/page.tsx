@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function ReceivePickerPage() {
   const records = await listTankReplacements();
   const pending = records
-    .filter((r) => !r.inbound_date)
+    .filter((r) => r.status !== "완료")
     .sort((a, b) => (a.outbound_date < b.outbound_date ? -1 : 1));
 
   return (
@@ -25,12 +25,13 @@ export default async function ReceivePickerPage() {
         </p>
       ) : (
         <div className="overflow-x-auto rounded-md border border-neutral-200 dark:border-neutral-800">
-          <table className="w-full min-w-[560px] text-left text-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="bg-neutral-50 text-neutral-600 dark:bg-neutral-900 dark:text-neutral-400">
               <tr>
                 <th className="px-3 py-2">출고일자</th>
                 <th className="px-3 py-2">출고수량</th>
-                <th className="px-3 py-2">출고 SN</th>
+                <th className="px-3 py-2">이미 입고</th>
+                <th className="px-3 py-2">남은 수량</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -39,7 +40,8 @@ export default async function ReceivePickerPage() {
                 <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900">
                   <td className="px-3 py-2">{r.outbound_date}</td>
                   <td className="px-3 py-2">{r.outbound_quantity ?? "-"}</td>
-                  <td className="px-3 py-2">{r.outbound_serial ?? "-"}</td>
+                  <td className="px-3 py-2">{r.received_quantity}</td>
+                  <td className="px-3 py-2">{r.remaining_quantity ?? "-"}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
                       href={`/tank-replacements/${r.id}/receive`}

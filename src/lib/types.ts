@@ -59,7 +59,8 @@ export interface IssueInput {
 }
 
 /** 포스콤 탱크 누유대체: 누유 이슈 발생 시 신품을 먼저 출고하고, 포스콤에서 대체품 탱크를
- * 받아오는 흐름을 기록한다. 대체품 입고 전에는 inbound_* 값이 비어있을 수 있다. */
+ * 받아오는 흐름을 기록한다. 대체품은 한 번에 다 안 오고 여러 번에 나눠(부분입고) 올 수
+ * 있어서, 입고는 이 레코드에 딸린 TankReplacementReceipt 여러 건으로 따로 기록한다. */
 export interface TankReplacement {
   id: number;
   title: string;
@@ -67,10 +68,6 @@ export interface TankReplacement {
   outbound_date: string;
   outbound_quantity: number | null;
   outbound_serial: string | null;
-  /** 대체품 입고일자 (아직 안 받았으면 null) */
-  inbound_date: string | null;
-  inbound_quantity: number | null;
-  inbound_serial: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,7 +77,31 @@ export interface TankReplacementInput {
   outbound_date: string;
   outbound_quantity?: number | null;
   outbound_serial?: string | null;
-  inbound_date?: string | null;
+}
+
+/** 대체품 입고 1건. 같은 출고 건에 여러 건이 쌓일 수 있다(부분입고 누적). */
+export interface TankReplacementReceipt {
+  id: number;
+  tank_replacement_id: number;
+  inbound_date: string;
+  inbound_quantity: number | null;
+  inbound_serial: string | null;
+  created_at: string;
+}
+
+export interface TankReplacementReceiptInput {
+  inbound_date: string;
   inbound_quantity?: number | null;
   inbound_serial?: string | null;
+}
+
+export type TankReplacementStatus = "대기" | "부분입고" | "완료";
+
+export interface TankReplacementWithReceipts extends TankReplacement {
+  receipts: TankReplacementReceipt[];
+  /** receipts의 inbound_quantity 합계 */
+  received_quantity: number;
+  /** outbound_quantity - received_quantity. outbound_quantity를 안 적었으면 null(비교 불가). 0 밑으로는 안 내려감. */
+  remaining_quantity: number | null;
+  status: TankReplacementStatus;
 }
