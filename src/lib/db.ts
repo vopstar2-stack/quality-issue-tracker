@@ -79,6 +79,21 @@ async function ensureSchema(pool: Pool): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )
   `);
+  // 포스콤 탱크 누유대체: 신품 출고 -> 포스콤 대체품 입고 흐름 기록
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tank_replacements (
+      id SERIAL PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT '누유대체 신품출고',
+      outbound_date TEXT NOT NULL,
+      outbound_quantity INTEGER,
+      outbound_serial TEXT,
+      inbound_date TEXT,
+      inbound_quantity INTEGER,
+      inbound_serial TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    )
+  `);
 }
 
 export async function query<T>(text: string, params: unknown[] = []): Promise<T[]> {

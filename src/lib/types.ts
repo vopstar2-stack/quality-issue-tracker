@@ -57,3 +57,30 @@ export interface IssueInput {
   countermeasure?: string | null;
   conclusion?: string | null;
 }
+
+/** 포스콤 탱크 누유대체: 누유 이슈 발생 시 신품을 먼저 출고하고, 포스콤에서 대체품 탱크를
+ * 받아오는 흐름을 기록한다. 대체품 입고 전에는 inbound_* 값이 비어있을 수 있다. */
+export interface TankReplacement {
+  id: number;
+  title: string;
+  /** 신품 출고일자 */
+  outbound_date: string;
+  outbound_quantity: number | null;
+  outbound_serial: string | null;
+  /** 대체품 입고일자 (아직 안 받았으면 null) */
+  inbound_date: string | null;
+  inbound_quantity: number | null;
+  inbound_serial: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TankReplacementInput {
+  title: string;
+  outbound_date: string;
+  outbound_quantity?: number | null;
+  outbound_serial?: string | null;
+  inbound_date?: string | null;
+  inbound_quantity?: number | null;
+  inbound_serial?: string | null;
+}

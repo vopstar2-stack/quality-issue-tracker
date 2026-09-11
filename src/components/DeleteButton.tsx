@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 
-export default function DeleteButton({ id }: { id: number }) {
+export default function DeleteButton({
+  id,
+  basePath = "/api/issues",
+  redirectTo = "/",
+  label = "이슈 삭제 확인",
+}: {
+  id: number;
+  basePath?: string;
+  redirectTo?: string;
+  label?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -18,7 +28,7 @@ export default function DeleteButton({ id }: { id: number }) {
     if (!code) return;
     setError(null);
     setDeleting(true);
-    const res = await fetch(`/api/issues/${id}`, {
+    const res = await fetch(`${basePath}/${id}`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ code }),
@@ -26,7 +36,7 @@ export default function DeleteButton({ id }: { id: number }) {
     if (res.ok) {
       // Full navigation, not router.push: avoids leaving the button stuck on
       // "삭제 중..." if the client-side transition stalls on a slow/cold DB.
-      window.location.href = "/";
+      window.location.href = redirectTo;
       return;
     }
     setDeleting(false);
@@ -52,7 +62,7 @@ export default function DeleteButton({ id }: { id: number }) {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-md bg-white p-6 shadow-lg dark:bg-neutral-900">
-            <h2 className="mb-2 text-lg font-semibold">이슈 삭제 확인</h2>
+            <h2 className="mb-2 text-lg font-semibold">{label}</h2>
             <p className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
               삭제하려면 확인 코드를 입력하세요.
             </p>
