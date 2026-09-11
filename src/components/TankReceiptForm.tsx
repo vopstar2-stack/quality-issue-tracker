@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
+import SerialFileInput from "@/components/SerialFileInput";
 
 const inputClass =
   "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none dark:border-neutral-700 dark:bg-neutral-900";
@@ -90,6 +91,7 @@ export default function TankReceiptForm({ tankReplacementId }: { tankReplacement
             className={inputClass}
             placeholder="여러 개면 쉼표로 구분"
           />
+          <SerialFileInput onExtract={(serials) => setInboundSerial(serials.join(", "))} />
         </Field>
       </div>
 

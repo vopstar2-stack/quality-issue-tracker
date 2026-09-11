@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent, type ReactNode } from "react";
 import type { TankReplacement } from "@/lib/types";
+import SerialFileInput from "@/components/SerialFileInput";
 
 interface FormValues {
   title: string;
@@ -140,6 +141,7 @@ export default function TankReplacementForm({
               className={inputClass}
               placeholder="여러 개면 쉼표로 구분"
             />
+            <SerialFileInput onExtract={(serials) => update("outbound_serial", serials.join(", "))} />
           </Field>
         </div>
       </div>
