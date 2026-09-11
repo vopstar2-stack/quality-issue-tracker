@@ -8,14 +8,22 @@ export default async function TankReplacementsPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8">
-      <div className="mb-6 flex items-center justify-between gap-4">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-bold">포스콤 Tank 누유대체 신품출고</h1>
-        <Link
-          href="/tank-replacements/new"
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
-        >
-          + 새 기록 등록
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/tank-replacements/receive"
+            className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-medium hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            대체품 수령 등록
+          </Link>
+          <Link
+            href="/tank-replacements/new"
+            className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
+          >
+            + 신품출고 등록
+          </Link>
+        </div>
       </div>
 
       {records.length === 0 ? (
@@ -35,6 +43,7 @@ export default async function TankReplacementsPage() {
                 <th className="px-3 py-2">입고수량</th>
                 <th className="px-3 py-2">입고 SN</th>
                 <th className="px-3 py-2">상태</th>
+                <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
@@ -66,6 +75,16 @@ export default async function TankReplacementsPage() {
                       >
                         {received ? "입고완료" : "입고대기"}
                       </span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      {!received && (
+                        <Link
+                          href={`/tank-replacements/${r.id}/receive`}
+                          className="text-blue-600 hover:underline dark:text-blue-400"
+                        >
+                          수령 등록
+                        </Link>
+                      )}
                     </td>
                   </tr>
                 );

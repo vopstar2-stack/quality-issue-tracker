@@ -68,9 +68,13 @@ function Field({
 export default function TankReplacementForm({
   mode,
   record,
+  section = "full",
 }: {
   mode: "create" | "edit";
   record?: TankReplacement;
+  /** "outbound": 신품출고 등록(제목+출고 정보만). "inbound": 대체품 수령 등록(출고 정보는
+   * 참고용으로만 보여주고 입고 정보만 입력). "full": 기존 기록 수정(전체 편집). */
+  section?: "full" | "outbound" | "inbound";
 }) {
   const router = useRouter();
   const [values, setValues] = useState<FormValues>(
@@ -111,86 +115,106 @@ export default function TankReplacementForm({
     }
   }
 
+  const showOutboundInputs = section === "full" || section === "outbound";
+  const showInboundInputs = section === "full" || section === "inbound";
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
       <Field label="제목" required>
-        <input
-          required
-          value={values.title}
-          onChange={(e) => update("title", e.target.value)}
-          className={inputClass}
-        />
+        {section === "inbound" ? (
+          <p className={`${inputClass} bg-neutral-50 dark:bg-neutral-950`}>{values.title}</p>
+        ) : (
+          <input
+            required
+            value={values.title}
+            onChange={(e) => update("title", e.target.value)}
+            className={inputClass}
+          />
+        )}
       </Field>
 
       <div className="rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
         <h2 className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
           신품 출고 (포스콤 Tank)
         </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="출고일자" required>
-            <input
-              type="date"
-              required
-              value={values.outbound_date}
-              onChange={(e) => update("outbound_date", e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-          <Field label="수량">
-            <input
-              type="number"
-              min={0}
-              value={values.outbound_quantity}
-              onChange={(e) => update("outbound_quantity", e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-          <Field label="SN">
-            <input
-              value={values.outbound_serial}
-              onChange={(e) => update("outbound_serial", e.target.value)}
-              className={inputClass}
-              placeholder="여러 개면 쉼표로 구분"
-            />
-          </Field>
-        </div>
+        {showOutboundInputs ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="출고일자" required>
+              <input
+                type="date"
+                required
+                value={values.outbound_date}
+                onChange={(e) => update("outbound_date", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="수량">
+              <input
+                type="number"
+                min={0}
+                value={values.outbound_quantity}
+                onChange={(e) => update("outbound_quantity", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="SN">
+              <input
+                value={values.outbound_serial}
+                onChange={(e) => update("outbound_serial", e.target.value)}
+                className={inputClass}
+                placeholder="여러 개면 쉼표로 구분"
+              />
+            </Field>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+            <p><span className="text-neutral-500">출고일자</span> {values.outbound_date}</p>
+            <p><span className="text-neutral-500">수량</span> {values.outbound_quantity || "-"}</p>
+            <p><span className="text-neutral-500">SN</span> {values.outbound_serial || "-"}</p>
+          </div>
+        )}
       </div>
 
-      <div className="rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
-        <h2 className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
-          대체품 입고 (포스콤에서 받는 Tank)
-        </h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="입고일자">
-            <input
-              type="date"
-              value={values.inbound_date}
-              onChange={(e) => update("inbound_date", e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-          <Field label="수량">
-            <input
-              type="number"
-              min={0}
-              value={values.inbound_quantity}
-              onChange={(e) => update("inbound_quantity", e.target.value)}
-              className={inputClass}
-            />
-          </Field>
-          <Field label="SN">
-            <input
-              value={values.inbound_serial}
-              onChange={(e) => update("inbound_serial", e.target.value)}
-              className={inputClass}
-              placeholder="여러 개면 쉼표로 구분"
-            />
-          </Field>
+      {showInboundInputs && (
+        <div className="rounded-md border border-neutral-200 p-4 dark:border-neutral-800">
+          <h2 className="mb-3 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+            대체품 입고 (포스콤에서 받는 Tank)
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label="입고일자" required={section === "inbound"}>
+              <input
+                type="date"
+                required={section === "inbound"}
+                value={values.inbound_date}
+                onChange={(e) => update("inbound_date", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="수량">
+              <input
+                type="number"
+                min={0}
+                value={values.inbound_quantity}
+                onChange={(e) => update("inbound_quantity", e.target.value)}
+                className={inputClass}
+              />
+            </Field>
+            <Field label="SN">
+              <input
+                value={values.inbound_serial}
+                onChange={(e) => update("inbound_serial", e.target.value)}
+                className={inputClass}
+                placeholder="여러 개면 쉼표로 구분"
+              />
+            </Field>
+          </div>
+          {section === "full" && (
+            <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
+              아직 대체품을 못 받았으면 비워두고 나중에 다시 열어서 채우면 됩니다.
+            </p>
+          )}
         </div>
-        <p className="mt-2 text-xs text-neutral-400 dark:text-neutral-500">
-          아직 대체품을 못 받았으면 비워두고 나중에 다시 열어서 채우면 됩니다.
-        </p>
-      </div>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
