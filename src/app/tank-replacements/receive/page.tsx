@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { listTankReplacements } from "@/lib/tank-replacements";
+import { needsReceiptAction } from "@/lib/tank-replacement-status";
 
 export const dynamic = "force-dynamic";
 
 export default async function ReceivePickerPage() {
   const records = await listTankReplacements();
   const pending = records
-    .filter((r) => r.status !== "완료")
+    .filter((r) => needsReceiptAction(r.status))
     .sort((a, b) => (a.outbound_date < b.outbound_date ? -1 : 1));
 
   return (

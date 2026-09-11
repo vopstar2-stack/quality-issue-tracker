@@ -1,23 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTankReplacement } from "@/lib/tank-replacements";
+import { STATUS_STYLE, needsReceiptAction, statusLabel } from "@/lib/tank-replacement-status";
 import TankReplacementForm from "@/components/TankReplacementForm";
 import DeleteButton from "@/components/DeleteButton";
-import DeleteReceiptButton from "@/components/DeleteReceiptButton";
+import ReceiptRow from "@/components/ReceiptRow";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLE: Record<string, string> = {
-  대기: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  부분입고: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
-  완료: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  대기: "입고대기",
-  부분입고: "미입고",
-  완료: "입고완료",
-};
 
 export default async function TankReplacementDetailPage({
   params,
@@ -31,11 +20,6 @@ export default async function TankReplacementDetailPage({
   const record = await getTankReplacement(numId);
   if (!record) notFound();
 
-  const statusLabel =
-    record.status === "부분입고" && record.remaining_quantity !== null
-      ? `${record.remaining_quantity}개 미입고`
-      : STATUS_LABEL[record.status];
-
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -47,7 +31,7 @@ export default async function TankReplacementDetailPage({
         </h1>
         <div className="flex items-start gap-3">
           <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS_STYLE[record.status]}`}>
-            {statusLabel}
+            {statusLabel(record)}
           </span>
           <DeleteButton
             id={record.id}
@@ -65,7 +49,7 @@ export default async function TankReplacementDetailPage({
           <h2 className="text-sm font-semibold text-neutral-700 dark:text-neutral-300">
             대체품 입고 내역 (출고 {record.outbound_quantity ?? "-"}개 · 입고 {record.received_quantity}개)
           </h2>
-          {record.status !== "완료" && (
+          {needsReceiptAction(record.status) && (
             <Link
               href={`/tank-replacements/${record.id}/receive`}
               className="rounded-md bg-neutral-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-neutral-700 dark:bg-white dark:text-neutral-900"
@@ -89,14 +73,7 @@ export default async function TankReplacementDetailPage({
             </thead>
             <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
               {record.receipts.map((r) => (
-                <tr key={r.id}>
-                  <td className="py-1.5 pr-3">{r.inbound_date}</td>
-                  <td className="py-1.5 pr-3">{r.inbound_quantity ?? "-"}</td>
-                  <td className="py-1.5 pr-3">{r.inbound_serial ?? "-"}</td>
-                  <td className="py-1.5 text-right">
-                    <DeleteReceiptButton tankReplacementId={record.id} receiptId={r.id} />
-                  </td>
-                </tr>
+                <ReceiptRow key={r.id} tankReplacementId={record.id} receipt={r} />
               ))}
             </tbody>
           </table>

@@ -95,13 +95,14 @@ export interface TankReplacementReceiptInput {
   inbound_serial?: string | null;
 }
 
-export type TankReplacementStatus = "대기" | "부분입고" | "완료";
+export type TankReplacementStatus = "대기" | "부분입고" | "완료" | "초과입고";
 
 export interface TankReplacementWithReceipts extends TankReplacement {
   receipts: TankReplacementReceipt[];
   /** receipts의 inbound_quantity 합계 */
   received_quantity: number;
-  /** outbound_quantity - received_quantity. outbound_quantity를 안 적었으면 null(비교 불가). 0 밑으로는 안 내려감. */
+  /** outbound_quantity - received_quantity. outbound_quantity를 안 적었으면 null(비교 불가).
+   * 양수면 미입고 수량, 음수면 초과입고 수량(절댓값). */
   remaining_quantity: number | null;
   status: TankReplacementStatus;
 }

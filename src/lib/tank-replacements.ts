@@ -34,12 +34,17 @@ function withReceipts(
   receipts: TankReplacementReceipt[],
 ): TankReplacementWithReceipts {
   const received_quantity = receipts.reduce((sum, r) => sum + (r.inbound_quantity ?? 0), 0);
+  // 양수: 아직 못 받은 수량. 음수: 출고수량보다 더 받은 수량(초과입고).
   const remaining_quantity =
-    record.outbound_quantity !== null
-      ? Math.max(record.outbound_quantity - received_quantity, 0)
-      : null;
-  const status =
-    receipts.length === 0 ? "대기" : remaining_quantity !== null && remaining_quantity > 0 ? "부분입고" : "완료";
+    record.outbound_quantity !== null ? record.outbound_quantity - received_quantity : null;
+
+  let status: TankReplacementWithReceipts["status"];
+  if (receipts.length === 0) status = "대기";
+  else if (remaining_quantity === null) status = "완료";
+  else if (remaining_quantity > 0) status = "부분입고";
+  else if (remaining_quantity < 0) status = "초과입고";
+  else status = "완료";
+
   return { ...record, receipts, received_quantity, remaining_quantity, status };
 }
 
@@ -109,6 +114,23 @@ export async function addTankReplacementReceipt(
     [tankReplacementId, input.inbound_date, input.inbound_quantity ?? null, input.inbound_serial ?? null],
   );
   return toReceipt(rows[0]);
+}
+
+export async function updateTankReplacementReceipt(
+  tankReplacementId: number,
+  receiptId: number,
+  input: TankReplacementReceiptInput,
+): Promise<TankReplacementReceipt | undefined> {
+  const rows = await query<ReceiptRow>(
+    `UPDATE tank_replacement_receipts SET
+      inbound_date = $1,
+      inbound_quantity = $2,
+      inbound_serial = $3
+     WHERE id = $4 AND tank_replacement_id = $5
+     RETURNING *`,
+    [input.inbound_date, input.inbound_quantity ?? null, input.inbound_serial ?? null, receiptId, tankReplacementId],
+  );
+  return rows[0] ? toReceipt(rows[0]) : undefined;
 }
 
 export async function deleteTankReplacementReceipt(

@@ -1,13 +1,8 @@
 import Link from "next/link";
 import { listTankReplacements } from "@/lib/tank-replacements";
+import { STATUS_STYLE, needsReceiptAction, statusLabel } from "@/lib/tank-replacement-status";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLE: Record<string, string> = {
-  대기: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200",
-  부분입고: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200",
-  완료: "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200",
-};
 
 export default async function TankReplacementsPage() {
   const records = await listTankReplacements();
@@ -51,45 +46,37 @@ export default async function TankReplacementsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-800">
-              {records.map((r) => {
-                const statusLabel =
-                  r.status === "부분입고" && r.remaining_quantity !== null
-                    ? `${r.remaining_quantity}개 미입고`
-                    : r.status === "완료"
-                      ? "입고완료"
-                      : "입고대기";
-                return (
-                  <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900">
-                    <td className="px-3 py-2 font-medium">
+              {records.map((r) => (
+                <tr key={r.id} className="hover:bg-neutral-50 dark:hover:bg-neutral-900">
+                  <td className="px-3 py-2 font-medium">
+                    <Link
+                      href={`/tank-replacements/${r.id}`}
+                      className="text-blue-600 hover:underline dark:text-blue-400"
+                    >
+                      {r.title}
+                    </Link>
+                  </td>
+                  <td className="px-3 py-2">{r.outbound_date}</td>
+                  <td className="px-3 py-2">{r.outbound_quantity ?? "-"}</td>
+                  <td className="px-3 py-2">{r.outbound_serial ?? "-"}</td>
+                  <td className="px-3 py-2">{r.received_quantity}</td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[r.status]}`}>
+                      {statusLabel(r)}
+                    </span>
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    {needsReceiptAction(r.status) && (
                       <Link
-                        href={`/tank-replacements/${r.id}`}
+                        href={`/tank-replacements/${r.id}/receive`}
                         className="text-blue-600 hover:underline dark:text-blue-400"
                       >
-                        {r.title}
+                        수령 등록
                       </Link>
-                    </td>
-                    <td className="px-3 py-2">{r.outbound_date}</td>
-                    <td className="px-3 py-2">{r.outbound_quantity ?? "-"}</td>
-                    <td className="px-3 py-2">{r.outbound_serial ?? "-"}</td>
-                    <td className="px-3 py-2">{r.received_quantity}</td>
-                    <td className="px-3 py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLE[r.status]}`}>
-                        {statusLabel}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {r.status !== "완료" && (
-                        <Link
-                          href={`/tank-replacements/${r.id}/receive`}
-                          className="text-blue-600 hover:underline dark:text-blue-400"
-                        >
-                          수령 등록
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+                    )}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
