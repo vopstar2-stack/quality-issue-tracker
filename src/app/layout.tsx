@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import ExeShortcutButton from "@/components/ExeShortcutButton";
 import "./globals.css";
+
+const navItemClass =
+  "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,45 +34,57 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-neutral-50 dark:bg-black">
         <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="mx-auto flex w-full max-w-6xl items-center gap-2 px-4 py-4">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-start gap-4 px-4 py-3">
             <Link href="/" className="text-lg font-bold">
               Work Log
             </Link>
-            <Link
-              href="/"
-              aria-label="홈"
-              title="홈"
-              className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="M3 11.5 12 4l9 7.5" />
-                <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
-              </svg>
-            </Link>
-            <Link
-              href="/tank-replacements"
-              aria-label="Tank 누유대체"
-              title="Tank 누유대체"
-              className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <path d="M12 3v6" />
-                <path d="M8 9h8l1.5 4.5a4.5 4.5 0 0 1-1 4.9l-.5.5a4 4 0 0 1-2.8 1.1h-2.4a4 4 0 0 1-2.8-1.1l-.5-.5a4.5 4.5 0 0 1-1-4.9L8 9Z" />
-              </svg>
-            </Link>
-            <a
-              href="https://ray-service-crm.netlify.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="CRM"
-              title="CRM"
-              className="rounded-md p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
-                <rect x="4" y="3" width="16" height="18" rx="1" />
-                <path d="M9 8h1M9 12h1M9 16h6M14 8h1" />
-              </svg>
-            </a>
+            <nav className="flex flex-wrap items-center justify-start gap-1">
+              <Link href="/" className={navItemClass}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <path d="M3 11.5 12 4l9 7.5" />
+                  <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
+                </svg>
+                홈
+              </Link>
+              <Link href="/tank-replacements" className={navItemClass}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <path d="M12 3v6" />
+                  <path d="M8 9h8l1.5 4.5a4.5 4.5 0 0 1-1 4.9l-.5.5a4 4 0 0 1-2.8 1.1h-2.4a4 4 0 0 1-2.8-1.1l-.5-.5a4.5 4.5 0 0 1-1-4.9L8 9Z" />
+                </svg>
+                Tank 누유대체
+              </Link>
+              <a
+                href="https://ray-service-crm.netlify.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navItemClass}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <rect x="4" y="3" width="16" height="18" rx="1" />
+                  <path d="M9 8h1M9 12h1M9 16h6M14 8h1" />
+                </svg>
+                CRM
+              </a>
+              <a
+                href="https://raymedi-my.sharepoint.com/:x:/r/personal/wonsoo83_kim_raymedical_com/_layouts/15/doc2.aspx?sourcedoc=%7B12BA563F-74DA-4C57-80D7-2F4BFDD1CBEE%7D&file=Book%208.xlsx&action=editNew&mobileredirect=true&wdOrigin=ONENOTEONLINE.SHELL%2CAPPHOME-WEB.BANNER.NEWBLANK&wdPreviousSession=1d065c56-7183-48cf-b0ce-749b7310a42d&wdPreviousSessionSrc=AppHomeWeb&ct=1773646357773"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navItemClass}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <rect x="3" y="3" width="18" height="18" rx="1" />
+                  <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
+                </svg>
+                Book 8
+              </a>
+              <ExeShortcutButton className={navItemClass}>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <rect x="3" y="4" width="18" height="13" rx="1" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+                품질검사 대시보드
+              </ExeShortcutButton>
+            </nav>
           </div>
         </header>
         <main className="flex flex-1 flex-col">{children}</main>
