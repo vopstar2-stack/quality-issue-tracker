@@ -76,6 +76,18 @@ export default function RootLayout({
                 </svg>
                 Book 8
               </a>
+              <a
+                href="http://23.50.64.100:8080"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={navItemClass}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                  <path d="M3 3v18h18" />
+                  <path d="M7 15l3-4 3 2 4-6" />
+                </svg>
+                품질검사 대시보드
+              </a>
             </nav>
           </div>
         </header>
