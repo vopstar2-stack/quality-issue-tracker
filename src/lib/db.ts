@@ -9,7 +9,16 @@ function createPool(): Pool {
       "POSTGRES_URL 환경변수가 설정되지 않았습니다. Vercel Postgres를 연결하거나 .env.local에 값을 추가하세요.",
     );
   }
-  return new Pool({ connectionString });
+  const pool = new Pool({ connectionString });
+  // Neon 쪽 프록시가 유휴 커넥션을 조용히 끊을 때가 있는데, pg.Pool은 그걸 'error'
+  // 이벤트로 풀 전체에 다시 던진다. 여기서 받아주지 않으면 처리되지 않은 예외가 되어
+  // 이 서버리스 인스턴스가 이후 요청까지 계속 죽은 채로 남는다. pg.Pool이 문제된
+  // 커넥션은 내부적으로 알아서 제거하므로, 로그만 남기고 다음 쿼리에서 새 커넥션을
+  // 새로 맺게 둔다.
+  pool.on("error", (err) => {
+    console.error("Postgres idle client error", err);
+  });
+  return pool;
 }
 
 function getPool(): Pool {
@@ -122,7 +131,13 @@ async function ensureSchema(pool: Pool): Promise<void> {
 export async function query<T>(text: string, params: unknown[] = []): Promise<T[]> {
   const pool = getPool();
   if (!schemaReady) {
-    schemaReady = ensureSchema(pool);
+    schemaReady = ensureSchema(pool).catch((err) => {
+      // ensureSchema가 커넥션 문제 등으로 실패하면 그 실패를 여기 캐시해두지 않는다.
+      // 캐시해버리면 이 서버리스 인스턴스는 (재배포 전까지) 모든 요청에서 같은
+      // 실패를 그대로 재현하게 된다 - 다음 호출에서 새로 시도하도록 초기화한다.
+      schemaReady = null;
+      throw err;
+    });
   }
   await schemaReady;
   const result = await pool.query(text, params);
