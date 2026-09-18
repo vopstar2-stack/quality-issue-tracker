@@ -77,7 +77,7 @@ export default function RootLayout({
                 Book 8
               </a>
               <a
-                href="http://23.50.64.100:8080"
+                href="/quality-dashboard"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={navItemClass}
