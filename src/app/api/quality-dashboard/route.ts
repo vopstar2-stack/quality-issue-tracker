@@ -11,15 +11,7 @@ export async function POST(request: NextRequest) {
   }
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${expected}`) {
-    return Response.json(
-      {
-        error: "인증에 실패했습니다.",
-        debug: {
-          expectedJson: JSON.stringify(expected),
-        },
-      },
-      { status: 401 },
-    );
+    return Response.json({ error: "인증에 실패했습니다." }, { status: 401 });
   }
 
   const html = await request.text();
