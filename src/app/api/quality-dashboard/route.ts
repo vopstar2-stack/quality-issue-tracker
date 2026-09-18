@@ -15,11 +15,7 @@ export async function POST(request: NextRequest) {
       {
         error: "인증에 실패했습니다.",
         debug: {
-          gotHeader: auth !== null,
-          gotLen: auth?.length ?? 0,
-          expectedLen: `Bearer ${expected}`.length,
-          gotTail: auth?.slice(-6),
-          expectedTail: `Bearer ${expected}`.slice(-6),
+          expectedJson: JSON.stringify(expected),
         },
       },
       { status: 401 },
