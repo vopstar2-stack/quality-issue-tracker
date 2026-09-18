@@ -11,7 +11,19 @@ export async function POST(request: NextRequest) {
   }
   const auth = request.headers.get("authorization");
   if (auth !== `Bearer ${expected}`) {
-    return Response.json({ error: "인증에 실패했습니다." }, { status: 401 });
+    return Response.json(
+      {
+        error: "인증에 실패했습니다.",
+        debug: {
+          gotHeader: auth !== null,
+          gotLen: auth?.length ?? 0,
+          expectedLen: `Bearer ${expected}`.length,
+          gotTail: auth?.slice(-6),
+          expectedTail: `Bearer ${expected}`.slice(-6),
+        },
+      },
+      { status: 401 },
+    );
   }
 
   const html = await request.text();
