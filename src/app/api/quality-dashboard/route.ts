@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
     addRandomSuffix: false,
     allowOverwrite: true,
     contentType: "text/html; charset=utf-8",
+    // 기본값(30일)으로 두면 덮어써도 CDN 엣지가 예전 스냅샷을 오래 계속 캐시해서 내려줄
+    // 수 있다(실제로 이 문제로 몇 시간 전 스냅샷이 보였다). 하루 3번 갱신되는 콘텐츠라
+    // 캐시는 최소값(1분)만 유지한다.
+    cacheControlMaxAge: 60,
   });
 
   return Response.json({ ok: true, url: blob.url, uploadedAt: new Date().toISOString() });
