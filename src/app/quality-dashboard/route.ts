@@ -13,5 +13,21 @@ export async function GET() {
       { status: 404, headers: { "Content-Type": "text/plain; charset=utf-8" } },
     );
   }
-  return Response.redirect(latest.url, 302);
+
+  // Vercel Blob이 .html을 기본적으로 Content-Disposition: attachment로 내려주기 때문에
+  // (즉시 열리는 게 아니라 다운로드됨), blob URL로 그냥 리다이렉트하는 대신 여기서
+  // 내용을 직접 가져와 우리 쪽 Content-Type만 붙여서 돌려준다 - 그러면 브라우저가
+  // 바로 페이지로 렌더링한다.
+  const blobResponse = await fetch(latest.url, { cache: "no-store" });
+  if (!blobResponse.ok || !blobResponse.body) {
+    return new Response("대시보드를 불러오지 못했습니다.", { status: 502 });
+  }
+
+  return new Response(blobResponse.body, {
+    status: 200,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
+    },
+  });
 }
