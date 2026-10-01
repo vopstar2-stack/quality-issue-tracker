@@ -31,6 +31,9 @@ function getPool(): Pool {
 let schemaReady: Promise<void> | null = null;
 
 async function ensureSchema(pool: Pool): Promise<void> {
+  // 모든 문에 파라미터가 없으므로 한 번의 simple query로 묶어 보낸다 — 콜드 스타트마다
+  // 이 문들을 개별 await pool.query()로 14번 왕복하면 (특히 Neon처럼 원격 DB일 때)
+  // 그 자체로 몇 초가 걸린다. 묶어도 각 문은 여전히 IF NOT EXISTS 등으로 멱등이다.
   await pool.query(`
     CREATE TABLE IF NOT EXISTS issues (
       id SERIAL PRIMARY KEY,
@@ -47,49 +50,33 @@ async function ensureSchema(pool: Pool): Promise<void> {
       handler TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT ''
-  `);
-  // occurred_at is now labeled "접수일자" (reception date) in the UI; this new
-  // column holds the separate "발생일자" (actual defect occurrence date).
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS occurrence_date TEXT
-  `);
-  // Migrate rows still holding the old 5-value status set down to the new
-  // 3-value set (진행중/완료/처리없음). No-op once every row has been migrated.
-  await pool.query(`
-    UPDATE issues SET status = '진행중' WHERE status IN ('접수', '조사중', '조치중')
-  `);
-  await pool.query(`
-    UPDATE issues SET status = '처리없음' WHERE status = '보류'
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS cause TEXT
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_cause TEXT
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS countermeasure TEXT
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_countermeasure TEXT
-  `);
-  await pool.query(`
-    ALTER TABLE issues ADD COLUMN IF NOT EXISTS conclusion TEXT
-  `);
-  await pool.query(`
+    );
+
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';
+
+    -- occurred_at은 UI에서 "접수일자"로 표시된다; 이 컬럼은 별도의 "발생일자"
+    -- (실제 불량 발생일)를 저장한다.
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS occurrence_date TEXT;
+
+    -- 예전 5단계 status 값을 새 3단계(진행중/완료/처리없음)로 내린다.
+    -- 모든 행이 이미 마이그레이션됐다면 no-op.
+    UPDATE issues SET status = '진행중' WHERE status IN ('접수', '조사중', '조치중');
+    UPDATE issues SET status = '처리없음' WHERE status = '보류';
+
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS cause TEXT;
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_cause TEXT;
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS countermeasure TEXT;
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS ai_estimated_countermeasure TEXT;
+    ALTER TABLE issues ADD COLUMN IF NOT EXISTS conclusion TEXT;
+
     CREATE TABLE IF NOT EXISTS issue_photos (
       id SERIAL PRIMARY KEY,
       issue_id INTEGER NOT NULL REFERENCES issues(id) ON DELETE CASCADE,
       url TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  // 포스콤 탱크 누유대체: 신품 출고 -> 포스콤 대체품 입고 흐름 기록
-  await pool.query(`
+    );
+
+    -- 포스콤 탱크 누유대체: 신품 출고 -> 포스콤 대체품 입고 흐름 기록
     CREATE TABLE IF NOT EXISTS tank_replacements (
       id SERIAL PRIMARY KEY,
       title TEXT NOT NULL DEFAULT '누유대체 신품출고',
@@ -101,11 +88,10 @@ async function ensureSchema(pool: Pool): Promise<void> {
       inbound_serial TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  // 대체품이 여러 번에 나눠서(부분입고) 들어올 수 있어, 입고 1건당 한 행으로 기록한다.
-  // 출고수량과 이 테이블의 합계를 비교해 미입고/완료 여부를 계산한다.
-  await pool.query(`
+    );
+
+    -- 대체품이 여러 번에 나눠서(부분입고) 들어올 수 있어, 입고 1건당 한 행으로 기록한다.
+    -- 출고수량과 이 테이블의 합계를 비교해 미입고/완료 여부를 계산한다.
     CREATE TABLE IF NOT EXISTS tank_replacement_receipts (
       id SERIAL PRIMARY KEY,
       tank_replacement_id INTEGER NOT NULL REFERENCES tank_replacements(id) ON DELETE CASCADE,
@@ -113,18 +99,17 @@ async function ensureSchema(pool: Pool): Promise<void> {
       inbound_quantity INTEGER,
       inbound_serial TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-    )
-  `);
-  // 위 receipts 테이블 도입 전에 tank_replacements 위에 직접 기록됐던 단일 입고값을
-  // 최초 1건의 receipt로 옮긴다(이미 옮겨진 건은 건너뛰는 멱등 처리).
-  await pool.query(`
+    );
+
+    -- 위 receipts 테이블 도입 전에 tank_replacements 위에 직접 기록됐던 단일 입고값을
+    -- 최초 1건의 receipt로 옮긴다(이미 옮겨진 건은 건너뛰는 멱등 처리).
     INSERT INTO tank_replacement_receipts (tank_replacement_id, inbound_date, inbound_quantity, inbound_serial, created_at)
     SELECT id, inbound_date, inbound_quantity, inbound_serial, updated_at
     FROM tank_replacements
     WHERE inbound_date IS NOT NULL
       AND NOT EXISTS (
         SELECT 1 FROM tank_replacement_receipts WHERE tank_replacement_id = tank_replacements.id
-      )
+      );
   `);
 }
 
