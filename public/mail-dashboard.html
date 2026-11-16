@@ -389,7 +389,7 @@ function renderTrace(){
     const rows=xs.filter(t=>t.kind!=="part");
     body = rows.length?`<div class="tbl-wrap"><table class="tt">${thead}<tbody>${rows.map(traceRow).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 시리얼이 없어요.</div>`;
   } else {
-    const key = S.tmode==="model" ? (t=>t.model||"모델 미상") : (t=>t.partNo||(t.kind==="part"?t.code:"")||(t.partName?t.partName:"품번 미상"));
+    const key = S.tmode==="model" ? (t=>t.model||(t.kind==="part"?"협력사 부품 (품번 단위)":"모델 미상")) : (t=>t.partNo||(t.kind==="part"?t.code:"")||(t.partName?t.partName:"품번 미상"));
     const groups={}; xs.forEach(t=>{ (groups[key(t)]=groups[key(t)]||[]).push(t); });
     const names=Object.keys(groups).sort((a,b)=>String(tLast(groups[b][0])).localeCompare(String(tLast(groups[a][0]))));
     body = names.length? names.map(n=>{ const g=groups[n]; const open=g.filter(t=>t.kind!=="part"&&t.status!=="closed").length; const fails=g.reduce((s,t)=>s+tFails(t),0);
