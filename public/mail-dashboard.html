@@ -1,0 +1,549 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="mail-dashboard-source" content="/api/mail-dashboard">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>클비서 메일 상황판</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky status bar → KPI strip → tabbed views (이슈 묶음 / 신호등 / 부탁 트래커 / 브리핑 기록) */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#18212b; --muted:#5d6b78; --line:#dde3e9; --soft:#eef2f5;
+  --accent:#1f5f8b; --accent-ink:#ffffff;
+  --red:#c8372d; --red-bg:#fdecea; --amber:#b7791f; --amber-bg:#fdf3e1; --grey:#7a8794; --grey-bg:#eef1f4; --green:#2f7d4f; --green-bg:#e6f4ec;
+  --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#11161c; --panel:#192029; --ink:#e4e9ee; --muted:#93a1ae; --line:#2a3440; --soft:#1f2832;
+  --accent:#5fa8d8; --accent-ink:#0d1620;
+  --red:#ef6b60; --red-bg:#3a1d1b; --amber:#e0a84a; --amber-bg:#352a17; --grey:#93a1ae; --grey-bg:#232c36; --green:#5cc08a; --green-bg:#18301f;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11161c; --panel:#192029; --ink:#e4e9ee; --muted:#93a1ae; --line:#2a3440; --soft:#1f2832;
+  --accent:#5fa8d8; --accent-ink:#0d1620;
+  --red:#ef6b60; --red-bg:#3a1d1b; --amber:#e0a84a; --amber-bg:#352a17; --grey:#93a1ae; --grey-bg:#232c36; --green:#5cc08a; --green-bg:#18301f;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
+header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:12px}
+h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
+.stamp{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.stamp b{color:var(--ink);font-weight:500}
+.spacer{flex:1}
+button,.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap}
+button:hover{border-color:var(--accent)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button[disabled]{opacity:.5;cursor:default}
+.brief{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.brief h2{margin:0 0 6px;font-size:15px}
+.brief ul{margin:0;padding-left:18px}
+.brief li{margin:2px 0}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;cursor:pointer;text-align:left}
+.kpi .n{font-family:var(--f-mono);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi .l{font-size:12px;color:var(--muted)}
+.kpi.r .n{color:var(--red)} .kpi.a .n{color:var(--amber)} .kpi.b .n{color:var(--accent)}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+nav.tabs{display:flex;gap:4px;margin-top:18px;border-bottom:1px solid var(--line);overflow-x:auto}
+nav.tabs a{padding:8px 12px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap;font-weight:500}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+nav.tabs .cnt{font-family:var(--f-mono);font-size:11px;background:var(--soft);border-radius:9px;padding:0 6px;margin-left:4px}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:12px 0}
+.chip{border-radius:14px;padding:3px 10px;font-size:12px}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.filters input{flex:1;min-width:160px;font:inherit;font-size:13px;padding:5px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.empty{padding:32px 16px;text-align:center;color:var(--muted);background:var(--panel);border:1px dashed var(--line);border-radius:8px}
+.note{font-size:12px;color:var(--muted)}
+/* issue cards */
+.list{display:flex;flex-direction:column;gap:8px}
+.issue{background:var(--panel);border:1px solid var(--line);border-radius:8px;border-left:4px solid var(--grey);min-width:0}
+.issue.red{border-left-color:var(--red)} .issue.yellow{border-left-color:var(--amber)}
+.issue>summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
+.issue>summary::-webkit-details-marker{display:none}
+.ititle{font-weight:600;font-size:15px;min-width:0;overflow-wrap:anywhere}
+.imeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px;color:var(--muted)}
+.inext{grid-column:1/-1;font-size:13px}
+.inext b{font-weight:600}
+.pill{display:inline-block;font-size:11px;font-weight:600;border-radius:4px;padding:1px 6px;white-space:nowrap}
+.p-red{background:var(--red-bg);color:var(--red)} .p-yellow{background:var(--amber-bg);color:var(--amber)} .p-white{background:var(--grey-bg);color:var(--grey)}
+.p-new{background:var(--accent);color:var(--accent-ink)} .p-proj{background:var(--soft);color:var(--muted)} .p-done{background:var(--green-bg);color:var(--green)}
+.due{font-family:var(--f-mono)} .due.over{color:var(--red);font-weight:600}
+.ibody{padding:0 14px 12px;border-top:1px solid var(--line)}
+.ibody p{margin:10px 0}
+.thread{margin:8px 0 0;padding:0;list-style:none;border-left:2px solid var(--line)}
+.thread li{padding:4px 0 6px 12px;position:relative}
+.thread li::before{content:"";position:absolute;left:-5px;top:11px;width:8px;height:8px;border-radius:50%;background:var(--line)}
+.thread .who{font-weight:600} .thread .when{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:6px}
+.thread .gist{color:var(--ink)}
+.thread a{color:var(--accent);font-size:12px}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+/* signal view */
+.lanes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.lanes{grid-template-columns:1fr}}
+.lane h3{margin:0 0 8px;font-size:13px;display:flex;gap:6px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.row{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:6px;cursor:pointer;min-width:0}
+.row .t{font-weight:600;font-size:13px;overflow-wrap:anywhere} .row .s{font-size:12px;color:var(--muted)}
+/* kanban */
+.board{display:grid;grid-template-columns:repeat(4,minmax(220px,1fr));gap:10px;overflow-x:auto;padding-bottom:6px}
+.col{background:var(--soft);border-radius:8px;padding:8px;min-width:0}
+.col h3{margin:2px 4px 8px;font-size:13px;display:flex;justify-content:space-between}
+.ask{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:8px 10px;margin-bottom:6px}
+.ask.stale{border-color:var(--red)}
+.ask .t{font-weight:600;font-size:13px;overflow-wrap:anywhere}
+.ask .m{font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px 8px;margin-top:2px}
+.ask .age{font-family:var(--f-mono)} .ask.stale .age{color:var(--red);font-weight:600}
+.ask .actions button{padding:2px 8px;font-size:12px}
+/* log */
+.log .entry{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px}
+.log .entry .stamp{display:block;margin-bottom:4px}
+/* trace */
+.tmodes{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px}
+.tgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:860px){.tgrid{grid-template-columns:1fr}}
+.tbl-wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table.tt{border-collapse:collapse;width:100%;font-size:13px}
+.tt th{text-align:left;font-weight:600;font-size:12px;color:var(--muted);padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--soft)}
+.tt td{padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tt tr.sel td{background:var(--soft)}
+.tt tr[data-key]{cursor:pointer}
+.tt tr[data-key]:hover td{background:var(--soft)}
+.code{font-family:var(--f-mono);font-size:12.5px;font-weight:500;overflow-wrap:anywhere}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.grp{background:var(--panel);border:1px solid var(--line);border-radius:8px;margin-bottom:8px}
+.grp>summary{list-style:none;cursor:pointer;padding:9px 12px;display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline}
+.grp>summary::-webkit-details-marker{display:none}
+.grp .gt{font-weight:600}
+.grp .tbl-wrap{border:0;border-top:1px solid var(--line);border-radius:0 0 8px 8px}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px)}
+.detail h3{margin:0;font-family:var(--f-mono);font-size:16px;overflow-wrap:anywhere}
+.attrs{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:8px 0}
+.attrs dt{color:var(--muted)} .attrs dd{margin:0;overflow-wrap:anywhere}
+.tl{list-style:none;margin:8px 0 0;padding:0;border-left:2px solid var(--line)}
+.tl li{position:relative;padding:3px 0 8px 14px}
+.tl li::before{content:"";position:absolute;left:-6px;top:9px;width:10px;height:10px;border-radius:50%;background:var(--panel);border:2px solid var(--grey)}
+.tl li.ev-fail::before{border-color:var(--red);background:var(--red)}
+.tl li.ev-swap::before{border-color:var(--amber)}
+.tl li.ev-ok::before{border-color:var(--green)}
+.tl .d{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);margin-right:6px}
+.tl .ty{font-size:11px;font-weight:600}
+.rel{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.tchip{font-family:var(--f-mono);font-size:11.5px;border-radius:4px;padding:1px 7px;background:var(--soft);border:1px solid var(--line);color:var(--ink);cursor:pointer}
+.tchip.bad{border-color:var(--red);color:var(--red)}
+/* public web copy is read-only */
+.web .actions,.web [data-act="tclose"]{display:none!important}
+/* modal */
+dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:0;width:min(640px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(10,16,22,.45)}
+dialog form{padding:16px;display:flex;flex-direction:column;gap:10px}
+dialog h3{margin:0;font-size:15px}
+dialog label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+dialog input,dialog textarea,dialog select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+dialog textarea{min-height:200px;resize:vertical}
+.drow{display:flex;gap:8px;flex-wrap:wrap} .drow>label{flex:1;min-width:140px}
+.dfoot{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;align-items:center}
+.msg{font-size:12px} .msg.err{color:var(--red)} .msg.ok{color:var(--green)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:6px;font-size:13px;z-index:20}
+@media (prefers-reduced-motion:no-preference){.issue,.row,.ask{transition:border-color .15s}}
+</style>
+
+<header class="top"><div class="wrap">
+  <a id="homeLink" href="/" hidden style="color:var(--muted);text-decoration:none;font-size:13px">← Work Log</a>
+  <h1>클비서 메일 상황판</h1>
+  <span class="stamp" id="stamp">불러오는 중…</span>
+  <span class="spacer"></span>
+  <span class="stamp" id="sched"></span>
+</div></header>
+
+<main class="wrap">
+  <section class="brief" id="brief" hidden>
+    <h2 id="briefHead"></h2>
+    <ul id="briefList"></ul>
+  </section>
+
+  <div class="kpis" id="kpis">
+    <button class="kpi r" data-go="signal"><div class="n" id="k-red">–</div><div class="l">내가 처리할 것</div></button>
+    <button class="kpi a" data-go="issues" data-due="1"><div class="n" id="k-due">–</div><div class="l">기한 3일 이내·지남</div></button>
+    <button class="kpi b" data-go="asks"><div class="n" id="k-ask">–</div><div class="l">회신 기다리는 부탁</div></button>
+    <button class="kpi" data-go="issues" data-new="1"><div class="n" id="k-new">–</div><div class="l">직전 정리 이후 새 소식</div></button>
+  </div>
+
+  <nav class="tabs" aria-label="보기">
+    <a href="#issues" data-v="issues">이슈별 묶음<span class="cnt" id="c-issues">0</span></a>
+    <a href="#signal" data-v="signal">신호등</a>
+    <a href="#asks" data-v="asks">부탁 트래커<span class="cnt" id="c-asks">0</span></a>
+    <a href="#trace" data-v="trace">추적 (S/N·부품)<span class="cnt" id="c-trace">0</span></a>
+    <a href="#log" data-v="log">브리핑 기록</a>
+  </nav>
+
+  <div class="filters" id="filters">
+    <button class="chip" data-proj="" aria-pressed="true">전체</button>
+    <span id="projChips" style="display:contents"></span>
+    <input id="q" type="search" placeholder="제목, 사람, 품번, S/N 검색" aria-label="검색">
+    <button class="chip" id="showClosed" aria-pressed="false">완료 포함</button>
+  </div>
+
+  <section id="v-issues"></section>
+  <section id="v-signal" hidden></section>
+  <section id="v-asks" hidden></section>
+  <section id="v-trace" hidden></section>
+  <section id="v-log" class="log" hidden></section>
+</main>
+
+<dialog id="dlgDraft"><form method="dialog" id="fDraft">
+  <h3 id="dTitle">답장 초안</h3>
+  <label>받는 메일<select id="dMail"></select></label>
+  <label>어떤 내용으로 쓸까요? (비워두면 맥락에 맞춰 작성)<input id="dIntent" placeholder="예: 내일까지 원인 분석 결과 회신 요청"></label>
+  <div class="dfoot" style="justify-content:flex-start"><button type="button" id="dGen">Claude로 초안 쓰기</button><span class="msg" id="dGenMsg"></span></div>
+  <label>본문<textarea id="dBody"></textarea></label>
+  <div class="dfoot"><span class="msg" id="dMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="dSave">Outlook 임시보관함에 저장</button></div>
+  <p class="note" style="margin:0">보내지 않아요. Outlook 임시보관함에서 확인한 뒤 직접 보내세요.</p>
+</form></dialog>
+
+<dialog id="dlgEvent"><form method="dialog" id="fEvent">
+  <h3>내 일정에 등록</h3>
+  <label>제목<input id="eSub"></label>
+  <div class="drow"><label>날짜<input id="eDate" type="date"></label><label>시작<input id="eStart" type="time" value="09:00"></label><label>끝<input id="eEnd" type="time" value="09:30"></label></div>
+  <label>메모<textarea id="eBody" style="min-height:90px"></textarea></label>
+  <div class="dfoot"><span class="msg" id="eMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="eSave">일정 만들기</button></div>
+  <p class="note" style="margin:0">참석자 없이 내 캘린더에만 만들어요. 초대 메일은 나가지 않아요.</p>
+</form></dialog>
+
+<dialog id="dlgAsk"><form method="dialog" id="fAsk">
+  <h3>부탁 목록에 추가</h3>
+  <label>무엇을<input id="aWhat"></label>
+  <div class="drow"><label>누구에게<input id="aTo"></label><label>기한<input id="aDue" type="date"></label></div>
+  <div class="dfoot"><span class="msg" id="aMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="aSave">추가</button></div>
+</form></dialog>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
+const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
+const S = {issues:[], asks:[], briefs:[], trace:[], tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+let db=null, mcp=null, sample=null;
+const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
+const hasData = () => !!db || (WEB && !S.loadErr);
+
+const today = () => { const d=new Date(); d.setHours(0,0,0,0); return d; };
+const dday = s => { if(!s) return null; const d=new Date(s+"T00:00:00"); return Math.round((d-today())/864e5); };
+const ago = iso => { if(!iso) return ""; const m=(Date.now()-new Date(iso))/6e4; if(m<60) return Math.max(1,Math.round(m))+"분 전"; if(m<1440) return Math.round(m/60)+"시간 전"; return Math.round(m/1440)+"일 전"; };
+const fmt = iso => iso ? new Date(iso).toLocaleString("ko-KR",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit",hour12:false}) : "";
+const daysSince = iso => iso ? Math.floor((Date.now()-new Date(iso))/864e5) : 0;
+const dueTxt = s => { const n=dday(s); if(n==null) return ""; const lbl = n===0?"D-day":n>0?"D-"+n:"D+"+(-n); return `<span class="due ${n<0?"over":""}">${esc(s.slice(5).replace("-","/"))} ${lbl}</span>`; };
+function toast(t){ const el=document.createElement("div"); el.className="toast"; el.textContent=t; document.body.appendChild(el); setTimeout(()=>el.remove(),2600); }
+
+/* ---------- filtering ---------- */
+function visibleIssues(){
+  const q=S.q.trim().toLowerCase();
+  return S.issues.filter(i=>{
+    if(!S.closed && i.status==="closed") return false;
+    if(S.proj && i.project!==S.proj) return false;
+    if(S.onlyNew && !i.isNew) return false;
+    if(S.onlyDue){ const n=dday(i.due); if(n==null||n>3) return false; }
+    if(q){ const hay=[i.title,i.summary,i.nextAction,(i.people||[]).join(" "),(i.mails||[]).map(m=>m.from+" "+m.subject+" "+m.gist).join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>{ const o={red:0,yellow:1,white:2}; return (o[a.level]-o[b.level]) || ((dday(a.due)??999)-(dday(b.due)??999)) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
+}
+
+/* ---------- render ---------- */
+function render(){
+  const m=S.meta||{};
+  if(WEB && S.exportedAt) $("#sched").textContent = (m.schedule?"자동 정리 "+m.schedule+" · ":"")+"웹 반영 "+fmt(S.exportedAt);
+  $("#stamp").innerHTML = m.lastRunAt ? `마지막 정리 <b>${esc(fmt(m.lastRunAt))}</b> · ${esc(ago(m.lastRunAt))}` : (S.loaded?"아직 정리 기록이 없어요":"불러오는 중…");
+  if(!WEB) $("#sched").textContent = m.schedule ? "자동 정리 "+m.schedule : "";
+  const last=S.briefs[0];
+  if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; $("#briefList").innerHTML=(last.items||[]).map(t=>`<li>${esc(t)}</li>`).join(""); } else $("#brief").hidden=true;
+
+  const open=S.issues.filter(i=>i.status!=="closed");
+  $("#k-red").textContent=open.filter(i=>i.level==="red").length;
+  $("#k-due").textContent=open.filter(i=>{const n=dday(i.due);return n!=null&&n<=3;}).length;
+  $("#k-ask").textContent=S.asks.filter(a=>a.stage==="requested"||a.stage==="waiting").length;
+  $("#k-new").textContent=open.filter(i=>i.isNew).length;
+  $("#c-issues").textContent=open.length;
+  $("#c-asks").textContent=S.asks.filter(a=>a.stage!=="done").length;
+
+  const projs=[...new Set(S.issues.map(i=>i.project).filter(Boolean))].sort();
+  $("#projChips").innerHTML=projs.map(p=>`<button class="chip" data-proj="${esc(p)}" aria-pressed="${S.proj===p}">${esc(p)}</button>`).join("");
+  document.querySelector('[data-proj=""]').setAttribute("aria-pressed", String(!S.proj));
+  $("#showClosed").setAttribute("aria-pressed", String(S.closed));
+
+  document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current", a.dataset.v===S.view?"page":"false"));
+  $("#c-trace").textContent=S.trace.filter(t=>t.kind!=="part"&&t.status!=="closed").length;
+  VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
+  $("#filters").hidden = S.view==="log";
+  $("#projChips").hidden = $("#showClosed").hidden = document.querySelector('[data-proj=""]').hidden = S.view==="trace";
+  $("#q").placeholder = S.view==="trace" ? "S/N, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
+  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog})[S.view]();
+}
+
+function emptyMsg(){
+  if(!S.loaded) return `<div class="empty">메일 정리 결과를 불러오는 중이에요…</div>`;
+  if(WEB && S.loadErr) return `<div class="empty">메일 상황판 데이터를 불러오지 못했어요. 잠시 후 새로고침해 주세요.</div>`;
+  if(!hasData()) return `<div class="empty">이 화면에서는 데이터를 불러올 수 없어요. claude.ai에 로그인한 상태로 열어 주세요.</div>`;
+  if(!S.issues.length) return `<div class="empty">아직 정리된 메일이 없어요. 정해진 시간에 자동으로 채워지고, Claude에게 "메일 정리해줘"라고 하면 바로 채워져요.</div>`;
+  return `<div class="empty">조건에 맞는 이슈가 없어요. 필터를 풀어 보세요.</div>`;
+}
+
+function issueCard(i, open){
+  const lv=LV[i.level]||LV.white;
+  const mails=(i.mails||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  const filt=[S.onlyNew?"새 소식만":"",S.onlyDue?"기한 임박만":""].filter(Boolean);
+  return `<details class="issue ${esc(i.level)}" data-id="${esc(i.id)}" ${open?"open":""}>
+    <summary>
+      <div class="ititle">${esc(i.title)}</div>
+      <div class="imeta">${i.isNew?'<span class="pill p-new">NEW</span>':""}<span class="pill ${lv.c}">${lv.t}</span>${i.status==="closed"?'<span class="pill p-done">완료</span>':""}</div>
+      <div class="imeta">${i.project?`<span class="pill p-proj">${esc(i.project)}</span>`:""}<span>메일 ${mails.length}통</span><span>${esc((i.people||[]).slice(0,4).join(", "))}</span>${dueTxt(i.due)}<span>${esc(ago(i.updatedAt))}</span></div>
+      ${i.nextAction?`<div class="inext"><b>할 일</b> ${esc(i.nextAction)}</div>`:""}
+    </summary>
+    <div class="ibody">
+      ${i.summary?`<p>${esc(i.summary)}</p>`:""}
+      ${(()=>{ const ts=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)); return ts.length?`<div class="rel" style="margin-top:8px"><span class="note">추적 대상</span>${ts.map(t=>`<button class="tchip ${t.status!=="closed"&&t.kind!=="part"?"bad":""}" data-act="trace" data-id="${esc(t.id)}">${esc(t.code)}</button>`).join("")}</div>`:""; })()}
+      <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
+      <div class="actions">
+        <button data-act="draft" data-id="${esc(i.id)}" ${mails.length?"":"disabled"}>답장 초안</button>
+        <button data-act="event" data-id="${esc(i.id)}">일정 등록</button>
+        <button data-act="ask" data-id="${esc(i.id)}">부탁 목록에 추가</button>
+        <button data-act="${i.status==="closed"?"reopen":"close"}" data-id="${esc(i.id)}">${i.status==="closed"?"다시 열기":"완료 처리"}</button>
+        ${i.level!=="red"?`<button data-act="lv" data-lv="red" data-id="${esc(i.id)}">처리로 올리기</button>`:`<button data-act="lv" data-lv="yellow" data-id="${esc(i.id)}">지켜봄으로 내리기</button>`}
+      </div>
+    </div>
+  </details>`;
+}
+
+function renderIssues(){
+  const list=visibleIssues();
+  const banner=(S.onlyNew||S.onlyDue)?`<p class="note">${S.onlyNew?"직전 정리 이후 새 소식만":"기한 3일 이내·지난 것만"} 보는 중 · <button id="clearQuick">모두 보기</button></p>`:"";
+  $("#v-issues").innerHTML = banner + (list.length?`<div class="list">${list.map(i=>issueCard(i,false)).join("")}</div>`:emptyMsg());
+}
+
+function renderSignal(){
+  const list=visibleIssues();
+  if(!list.length){ $("#v-signal").innerHTML=emptyMsg(); return; }
+  const lane=(k,label)=>{ const xs=list.filter(i=>(i.level||"white")===k);
+    const body = k==="white" && xs.length>6
+      ? xs.slice(0,6).map(row).join("")+`<p class="note">외 ${xs.length-6}건 (이슈별 묶음에서 보기)</p>` : xs.map(row).join("");
+    return `<div class="lane"><h3><span class="dot" style="background:${LV[k].dot}"></span>${label}<span class="note">${xs.length}</span></h3>${body||'<p class="note">없음</p>'}</div>`; };
+  const row=i=>`<div class="row" data-open="${esc(i.id)}" tabindex="0"><div class="t">${i.isNew?'<span class="pill p-new">NEW</span> ':""}${esc(i.title)}</div><div class="s">${esc(i.nextAction||i.summary||"")} ${dueTxt(i.due)}</div></div>`;
+  $("#v-signal").innerHTML=`<div class="lanes">${lane("red","내가 처리할 것")}${lane("yellow","지켜볼 것")}${lane("white","참고만")}</div>`;
+}
+
+function renderAsks(){
+  const q=S.q.trim().toLowerCase();
+  const xs=S.asks.filter(a=>(!q || [a.what,a.to,a.lastNote].join(" ").toLowerCase().includes(q)) && (!S.proj || (S.issues.find(i=>i.id===a.issueId)||{}).project===S.proj));
+  if(!S.loaded||!hasData()){ $("#v-asks").innerHTML=emptyMsg(); return; }
+  if(!S.asks.length){ $("#v-asks").innerHTML=`<div class="empty">아직 부탁한 일이 없어요. 내가 보낸 메일에서 요청한 내용을 자동으로 찾아 넣고, 이슈 카드의 "부탁 목록에 추가"로 직접 넣을 수도 있어요.</div>`; return; }
+  $("#v-asks").innerHTML=`<div class="board">${STAGES.map(([k,label],si)=>{
+    const col=xs.filter(a=>(a.stage||"requested")===k).sort((a,b)=>String(a.askedAt).localeCompare(String(b.askedAt)));
+    return `<div class="col"><h3><span>${label}</span><span class="note">${col.length}</span></h3>${col.map(a=>{
+      const age=daysSince(a.lastReplyAt||a.askedAt); const stale=(k==="requested"||k==="waiting")&&age>=3;
+      return `<div class="ask ${stale?"stale":""}">
+        <div class="t">${esc(a.what)}</div>
+        <div class="m"><span>→ ${esc(a.to)}</span><span class="age">${k==="done"?"완료":"D+"+age}</span>${dueTxt(a.due)}</div>
+        ${a.lastNote?`<div class="m">${esc(a.lastNote)}</div>`:""}
+        <div class="actions">${si>0?`<button data-act="mv" data-d="-1" data-id="${esc(a.id)}" aria-label="이전 단계로">◀</button>`:""}${si<3?`<button data-act="mv" data-d="1" data-id="${esc(a.id)}" aria-label="다음 단계로">▶</button>`:""}${stale&&a.mid?`<button data-act="remind" data-id="${esc(a.id)}">리마인드 초안</button>`:""}${a.issueId?`<button data-act="goto" data-id="${esc(a.issueId)}">이슈 보기</button>`:""}</div>
+      </div>`; }).join("")||'<p class="note" style="margin:4px">없음</p>'}</div>`; }).join("")}</div>
+    <p class="note">3일 넘게 회신이 없는 부탁은 빨간 테두리로 표시돼요.</p>`;
+}
+
+function renderLog(){
+  if(!S.briefs.length){ $("#v-log").innerHTML=S.loaded?`<div class="empty">브리핑 기록이 아직 없어요.</div>`:emptyMsg(); return; }
+  $("#v-log").innerHTML=S.briefs.map(b=>`<div class="entry"><span class="stamp">${esc(fmt(b.at))} · 새 메일 ${esc(b.newCount??0)}통</span><b>${esc(b.headline||"")}</b><ul>${(b.items||[]).map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`).join("");
+}
+
+/* ---------- traceability ---------- */
+const KIND={serial:"시리얼",part:"부품",lot:"LOT",product:"제품"};
+const EVC={"발생":"ev-fail","불량판정":"ev-fail","재발":"ev-fail","교체":"ev-swap","탈거":"ev-swap","장착":"ev-swap","회수":"ev-swap","RMA":"ev-swap","출하":"","입고":"","입고검사":"ev-ok","조치":"ev-ok","종결":"ev-ok","확인":"ev-ok"};
+const tById = id => S.trace.find(t=>t.id===id);
+const tLast = t => (t.events||[]).reduce((m,e)=>e.at>m?e.at:m, t.lastAt||"");
+const tFails = t => (t.events||[]).filter(e=>/발생|불량|재발/.test(e.type||"")).length;
+const dshort = s => s ? String(s).slice(0,10).replace(/^\d{4}-/,"").replace("-","/") : "";
+function traceMatch(t,q){ if(!q) return true; return [t.code,t.kind,t.model,t.partNo,t.partName,t.supplier,t.parentSn,t.site,t.note,(t.events||[]).map(e=>e.type+" "+e.text).join(" ")].join(" ").toLowerCase().includes(q); }
+function traceRow(t){
+  const st=t.status==="closed"?'<span class="pill p-done">종결</span>':(t.kind==="part"?'<span class="pill p-yellow">관리 중</span>':'<span class="pill p-red">추적 중</span>');
+  return `<tr data-key="${esc(t.id)}" class="${S.tsel===t.id?"sel":""}"><td><div class="code">${esc(t.code)}</div><div class="note">${esc(KIND[t.kind]||t.kind)}${t.parentSn?" · 상위 "+esc(t.parentSn):""}</div></td><td>${esc(t.model||"")}${t.partName?`<div class="note">${esc(t.partNo?t.partNo+" ":"")}${esc(t.partName)}</div>`:""}</td><td>${st}</td><td class="num">${tFails(t)}</td><td class="num">${esc(dshort(tLast(t)))}</td></tr>`;
+}
+const thead=`<thead><tr><th>S/N · 품번</th><th>제품 · 부품</th><th>상태</th><th class="num">불량</th><th class="num">최근</th></tr></thead>`;
+function renderTrace(){
+  const q=S.q.trim().toLowerCase();
+  const xs=S.trace.filter(t=>traceMatch(t,q)).sort((a,b)=>String(tLast(b)).localeCompare(String(tLast(a))));
+  const modes=`<div class="tmodes">${[["model","제품별"],["part","부품별"],["serial","시리얼별"]].map(([k,l])=>`<button class="chip" data-tmode="${k}" aria-pressed="${S.tmode===k}">${l}</button>`).join("")}<span class="note" style="align-self:center;margin-left:6px">메일을 정리할 때마다 S/N·품번별 이력이 자동으로 쌓여요.</span></div>`;
+  if(!S.loaded||!hasData()){ $("#v-trace").innerHTML=emptyMsg(); return; }
+  if(!S.trace.length){ $("#v-trace").innerHTML=modes+`<div class="empty">아직 추적 중인 S/N·부품이 없어요. 다음 메일 정리부터 불량 메일 속 시리얼·품번을 자동으로 모아요.</div>`; return; }
+  let body="";
+  if(S.tmode==="serial"){
+    const rows=xs.filter(t=>t.kind!=="part");
+    body = rows.length?`<div class="tbl-wrap"><table class="tt">${thead}<tbody>${rows.map(traceRow).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 시리얼이 없어요.</div>`;
+  } else {
+    const key = S.tmode==="model" ? (t=>t.model||"모델 미상") : (t=>t.partNo||(t.kind==="part"?t.code:"")||(t.partName?t.partName:"품번 미상"));
+    const groups={}; xs.forEach(t=>{ (groups[key(t)]=groups[key(t)]||[]).push(t); });
+    const names=Object.keys(groups).sort((a,b)=>String(tLast(groups[b][0])).localeCompare(String(tLast(groups[a][0]))));
+    body = names.length? names.map(n=>{ const g=groups[n]; const open=g.filter(t=>t.kind!=="part"&&t.status!=="closed").length; const fails=g.reduce((s,t)=>s+tFails(t),0);
+      const head=g.find(t=>t.kind==="part"); const sub = S.tmode==="part" && head ? `${esc(head.partName||"")}${head.supplier?" · "+esc(head.supplier):""}` : "";
+      return `<details class="grp" ${q||names.length<=4?"open":""}><summary><span class="gt ${S.tmode==="part"?"code":""}">${esc(n)}</span><span class="note">${sub}</span><span class="note">항목 ${g.length} · 추적 중 ${open} · 불량 기록 ${fails}</span></summary><div class="tbl-wrap"><table class="tt">${thead}<tbody>${g.map(traceRow).join("")}</tbody></table></div></details>`; }).join("") : `<div class="empty">조건에 맞는 항목이 없어요.</div>`;
+  }
+  $("#v-trace").innerHTML = modes + `<div class="tgrid"><div style="min-width:0">${body}</div><div style="min-width:0">${traceDetail()}</div></div>`;
+}
+function traceDetail(){
+  const t=S.tsel&&tById(S.tsel);
+  if(!t) return `<div class="detail"><p class="note" style="margin:0">왼쪽에서 S/N이나 품번을 고르면 발생·교체·RMA 이력이 시간순으로 보여요.</p></div>`;
+  const kids=S.trace.filter(x=>x.parentSn&&x.parentSn===t.code);
+  const parent=t.parentSn&&S.trace.find(x=>x.code===t.parentSn);
+  const sib = t.partNo ? S.trace.filter(x=>x.id!==t.id&&x.partNo===t.partNo&&x.kind!=="part") : [];
+  const lot = t.lot ? S.trace.filter(x=>x.id!==t.id&&x.lot===t.lot) : [];
+  const chip = x=>`<button class="tchip ${x.status!=="closed"&&tFails(x)?"bad":""}" data-act="trace" data-id="${esc(x.id)}">${esc(x.code)}</button>`;
+  const evs=(t.events||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at)));
+  const iss=(t.issueIds||[]).map(byId).filter(Boolean);
+  return `<div class="detail">
+    <div class="note">${esc(KIND[t.kind]||t.kind)}${t.model?" · "+esc(t.model):""}</div>
+    <h3>${esc(t.code)}</h3>
+    <dl class="attrs">
+      ${t.partNo||t.partName?`<dt>부품</dt><dd>${esc([t.partNo,t.partName].filter(Boolean).join(" "))}</dd>`:""}
+      ${t.supplier?`<dt>협력사</dt><dd>${esc(t.supplier)}</dd>`:""}
+      ${t.lot?`<dt>LOT·제조일</dt><dd>${esc(t.lot)}</dd>`:""}
+      ${t.site?`<dt>설치처</dt><dd>${esc(t.site)}</dd>`:""}
+      ${t.note?`<dt>메모</dt><dd>${esc(t.note)}</dd>`:""}
+      <dt>상태</dt><dd>${t.status==="closed"?"종결":"추적 중"} <button data-act="tclose" data-id="${esc(t.id)}" style="padding:1px 8px;font-size:12px">${t.status==="closed"?"다시 추적":"종결 처리"}</button></dd>
+    </dl>
+    ${parent?`<div class="note">장착 장비</div><div class="rel">${chip(parent)}</div>`:""}
+    ${kids.length?`<div class="note" style="margin-top:6px">장착·교체 이력 부품</div><div class="rel">${kids.map(chip).join("")}</div>`:""}
+    ${lot.length?`<div class="note" style="margin-top:6px">같은 LOT</div><div class="rel">${lot.map(chip).join("")}</div>`:""}
+    ${sib.length?`<div class="note" style="margin-top:6px">같은 품번의 다른 S/N</div><div class="rel">${sib.map(chip).join("")}</div>`:""}
+    <ul class="tl">${evs.map(e=>`<li class="${EVC[e.type]??""}"><span class="d">${esc(e.at?String(e.at).slice(0,10):"")}</span><span class="ty">${esc(e.type||"")}</span> ${esc(e.text||"")}${e.issueId&&byId(e.issueId)?` <a href="#issues" data-act="goto" data-id="${esc(e.issueId)}" style="font-size:12px;color:var(--accent)">이슈</a>`:""}${e.mid?` <a href="${esc("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(e.mid)+"&exvsurl=1&viewmodel=ReadMessageItem")}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent)">메일</a>`:""}</li>`).join("")||'<li class="note">이력 없음</li>'}</ul>
+    ${iss.length?`<div class="note" style="margin-top:6px">관련 이슈</div><div class="rel">${iss.map(i=>`<button class="tchip" data-act="goto" data-id="${esc(i.id)}" style="font-family:var(--f-body)">${esc(i.title)}</button>`).join("")}</div>`:""}
+  </div>`;
+}
+
+/* ---------- routing & filters ---------- */
+const VIEWS=["issues","signal","asks","trace","log"];
+function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
+window.addEventListener("hashchange",route);
+document.addEventListener("click",e=>{
+  const tr=e.target.closest("tr[data-key]"); if(tr&&!e.target.closest("button")){ S.tsel=tr.dataset.key; render(); return; }
+  const t=e.target.closest("button,[data-open],a[data-act]"); if(!t) return;
+  if(t.tagName==="A") e.preventDefault();
+  if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; location.hash=t.dataset.go; route(); return; }
+  if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
+  if(t.hasAttribute("data-proj")&&t.classList.contains("chip")){ S.proj=t.dataset.proj; render(); return; }
+  if(t.id==="showClosed"){ S.closed=!S.closed; render(); return; }
+  if(t.dataset.open){ openIssue(t.dataset.open); return; }
+  if(t.dataset.tmode){ S.tmode=t.dataset.tmode; render(); return; }
+  const act=t.dataset.act; if(act) handle(act,t);
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.open) openIssue(e.target.dataset.open); });
+$("#q").addEventListener("input",e=>{ S.q=e.target.value; render(); });
+function openIssue(id){ S.onlyNew=S.onlyDue=false; S.closed=S.closed||(S.issues.find(i=>i.id===id)||{}).status==="closed"; location.hash="issues"; S.view="issues"; render(); const el=document.querySelector(`.issue[data-id="${CSS.escape(id)}"]`); if(el){ el.open=true; el.scrollIntoView({block:"start",behavior:"smooth"}); } }
+
+/* ---------- actions ---------- */
+const byId = id => S.issues.find(i=>i.id===id);
+async function patch(path,data){ if(!db){ toast("저장할 수 없어요. 로그인 상태를 확인해 주세요."); return false; } try{ await db.doc(path).update(data); return true; }catch(err){ toast("저장하지 못했어요: "+(err.code||"오류")); return false; } }
+function mcpMsg(err){ const c=err&&err.code; return ({needs_reauth:"Microsoft 365 연결이 만료됐어요. claude.ai 설정 → 커넥터에서 다시 연결해 주세요.",server_not_connected:"Microsoft 365 커넥터가 연결돼 있지 않아요. claude.ai 설정 → 커넥터에서 추가해 주세요.",not_in_manifest:"이 페이지에서 Microsoft 365 사용을 허용하지 않았어요. 페이지 권한에서 켜 주세요.",approval_required:"승인이 필요해요. 버튼을 다시 눌러 허용해 주세요.",blocked_by_policy:"회사 정책으로 막혀 있어요.",tool_error:"Outlook이 요청을 거절했어요: "+(err.message||"")}[c]) || ("Outlook 연결 오류("+(c||"알 수 없음")+"). 잠시 후 다시 시도해 주세요. 이미 만들어졌을 수 있으니 Outlook에서 먼저 확인해 주세요."); }
+
+let cur=null;
+async function handle(act,t){
+  const id=t.dataset.id;
+  if(act==="close"||act==="reopen"){ if(await patch("issues/"+id,{status:act==="close"?"closed":"open"})) toast(act==="close"?"완료로 옮겼어요":"다시 열었어요"); return; }
+  if(act==="lv"){ await patch("issues/"+id,{level:t.dataset.lv}); return; }
+  if(act==="goto"){ openIssue(id); return; }
+  if(act==="trace"){ S.tsel=id; S.q=""; $("#q").value=""; location.hash="trace"; S.view="trace"; render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
+  if(act==="tclose"){ const x=tById(id); await patch("trace/"+id,{status:x.status==="closed"?"open":"closed"}); return; }
+  if(act==="mv"){ const a=S.asks.find(x=>x.id===id); const k=STAGES.findIndex(s=>s[0]===(a.stage||"requested"))+Number(t.dataset.d); if(k>=0&&k<4) await patch("asks/"+id,{stage:STAGES[k][0], movedAt:new Date().toISOString()}); return; }
+  if(act==="draft"){ const i=byId(id); cur={kind:"issue",item:i}; openDraft(i.title,(i.mails||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))), i.replyTo); return; }
+  if(act==="remind"){ const a=S.asks.find(x=>x.id===id); cur={kind:"ask",item:a}; openDraft("리마인드: "+a.what,[{mid:a.mid,from:a.to,subject:a.what,at:a.askedAt}],a.mid); $("#dIntent").value=`${a.to}님께 "${a.what}" 진행 상황을 정중하게 다시 여쭤보는 리마인드`; return; }
+  if(act==="event"){ const i=byId(id); cur={item:i}; $("#eSub").value=i.title; $("#eDate").value=i.due||new Date(Date.now()+864e5).toISOString().slice(0,10); $("#eBody").value=[i.nextAction,i.summary].filter(Boolean).join("\n\n"); $("#eMsg").textContent=""; $("#eSave").disabled=!mcp; if(!mcp) $("#eMsg").textContent="이 화면에서는 Outlook에 연결할 수 없어요."; $("#dlgEvent").showModal(); return; }
+  if(act==="ask"){ const i=byId(id); cur={item:i}; $("#aWhat").value=i.nextAction||i.title; $("#aTo").value=(i.people||[])[0]||""; $("#aDue").value=i.due||""; $("#aMsg").textContent=""; $("#dlgAsk").showModal(); return; }
+}
+
+function openDraft(title,mails,pref){
+  $("#dTitle").textContent="답장 초안 · "+title;
+  $("#dMail").innerHTML=mails.filter(m=>m.mid).map(m=>`<option value="${esc(m.mid)}" ${m.mid===pref?"selected":""}>${esc(fmt(m.at))} ${esc(m.from)} — ${esc(m.subject||m.gist||"")}</option>`).join("");
+  $("#dIntent").value=""; $("#dBody").value=""; $("#dMsg").textContent=""; $("#dGenMsg").textContent="";
+  $("#dGen").disabled=!sample; if(!sample) $("#dGenMsg").textContent="이 화면에서는 Claude 초안 쓰기를 쓸 수 없어요. 직접 입력해 주세요.";
+  $("#dSave").disabled=!mcp; if(!mcp) $("#dMsg").textContent="이 화면에서는 Outlook에 저장할 수 없어요.";
+  $("#dlgDraft").showModal();
+}
+$("#dGen").addEventListener("click",async()=>{
+  const it=cur.item; const msg=$("#dGenMsg"); msg.className="msg"; msg.textContent="쓰는 중…"; $("#dGen").disabled=true;
+  const ctx = cur.kind==="ask" ? `부탁 내용: ${it.what}\n받는 사람: ${it.to}\n부탁한 날: ${it.askedAt}\n기한: ${it.due||"없음"}` :
+    `이슈: ${it.title}\n요약: ${it.summary||""}\n내 할 일: ${it.nextAction||""}\n메일 흐름:\n`+(it.mails||[]).map(m=>`- ${m.at} ${m.from}: ${m.gist||m.subject}`).join("\n");
+  const prompt=`당신은 (주)레이 품질 조직 김원수 수석의 메일 비서입니다. 아래 맥락으로 한국어 업무 답장 본문만 작성하세요. 인사 한 줄, 핵심 2~4문장, 마무리 한 줄. 서명은 "김원수 드림". 확인되지 않은 사실이나 날짜는 지어내지 말고 [확인 필요]로 표시하세요. 본문 외 다른 말은 쓰지 마세요.\n\n요청 방향: ${$("#dIntent").value||"맥락에 맞게 회신"}\n\n${ctx}`;
+  try{ const r=await sample(prompt,{onText:({text})=>{$("#dBody").value=text;}}); $("#dBody").value=r.text; msg.textContent="초안을 썼어요. 고친 뒤 저장하세요."; msg.className="msg ok"; }
+  catch(err){ msg.className="msg err"; msg.textContent= err.code==="not_granted"?"Claude 사용이 허용되지 않았어요. 직접 입력해 주세요.":err.code==="rate_limited"?"요청이 많아요. 잠시 후 다시 눌러 주세요.":"초안을 쓰지 못했어요. 직접 입력해 주세요."; }
+  finally{ $("#dGen").disabled=false; }
+});
+$("#dSave").addEventListener("click",async()=>{
+  const mid=$("#dMail").value, body=$("#dBody").value.trim(), msg=$("#dMsg");
+  if(!mid){ msg.className="msg err"; msg.textContent="답장할 메일을 고르세요."; return; }
+  if(!body){ msg.className="msg err"; msg.textContent="본문을 입력하세요."; return; }
+  const html=body.split(/\n{2,}/).map(p=>"<p>"+esc(p).replace(/\n/g,"<br>")+"</p>").join("");
+  $("#dSave").disabled=true; msg.className="msg"; msg.textContent="저장하는 중…";
+  try{ const r=await mcp.callTool("Microsoft 365","outlook_create_reply_draft",{messageId:mid,body:html,bodyType:"html"}); const p=r.payload||{}; const link=p.webLink||(p.draft&&p.draft.webLink);
+    msg.className="msg ok"; msg.innerHTML="임시보관함에 저장했어요."+(link?` <a href="${esc(link)}" target="_blank" rel="noopener">Outlook에서 열기</a>`:"");
+    if(cur.kind==="ask") patch("asks/"+cur.item.id,{lastNote:"리마인드 초안 작성 "+fmt(new Date().toISOString())});
+  }catch(err){ msg.className="msg err"; msg.textContent=mcpMsg(err); }
+  finally{ $("#dSave").disabled=false; }
+});
+$("#eSave").addEventListener("click",async()=>{
+  const d=$("#eDate").value, s=$("#eStart").value, e=$("#eEnd").value, msg=$("#eMsg");
+  if(!d||!s||!e||e<=s){ msg.className="msg err"; msg.textContent="날짜와 시간을 확인하세요. 끝이 시작보다 늦어야 해요."; return; }
+  $("#eSave").disabled=true; msg.className="msg"; msg.textContent="만드는 중…";
+  try{ const r=await mcp.callTool("Microsoft 365","outlook_create_event",{subject:$("#eSub").value||cur.item.title,start:{dateTime:d+"T"+s,timeZone:"Asia/Seoul"},end:{dateTime:d+"T"+e,timeZone:"Asia/Seoul"},body:$("#eBody").value,bodyType:"text",showAs:"busy"});
+    const link=(r.payload||{}).webLink; msg.className="msg ok"; msg.innerHTML="일정을 만들었어요."+(link?` <a href="${esc(link)}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""); }
+  catch(err){ msg.className="msg err"; msg.textContent=mcpMsg(err); $("#eSave").disabled=false; }
+});
+$("#aSave").addEventListener("click",async()=>{
+  const what=$("#aWhat").value.trim(), to=$("#aTo").value.trim(), msg=$("#aMsg");
+  if(!what||!to){ msg.className="msg err"; msg.textContent="무엇을, 누구에게를 채워 주세요."; return; }
+  if(!db){ msg.className="msg err"; msg.textContent="저장할 수 없어요. 로그인 상태를 확인해 주세요."; return; }
+  const i=cur.item; const last=(i.mails||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at)))[0];
+  try{ await db.collection("asks").add({what,to,due:$("#aDue").value,stage:"requested",askedAt:new Date().toISOString(),issueId:i.id,mid:last?last.mid:"",source:"manual"}); $("#dlgAsk").close(); toast("부탁 목록에 추가했어요"); }
+  catch(err){ msg.className="msg err"; msg.textContent="추가하지 못했어요: "+(err.code||"오류"); }
+});
+
+/* ---------- data ---------- */
+async function boot(){
+  route();
+  if(WEB){
+    document.documentElement.classList.add("web"); $("#homeLink").hidden=false;
+    try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
+      S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||"";
+      S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
+    }catch(e){ S.loadErr=true; }
+    S.loaded=true; render(); return;
+  }
+  const timer=setTimeout(()=>{ if(!S.loaded){ S.loaded=true; render(); $("#stamp").textContent="데이터에 아직 연결되지 않았어요"; } },10000);
+  try{ db = await window.claude?.use("db"); }catch(_){ db=null; }
+  if(!db){ clearTimeout(timer); S.loaded=true; render(); }
+  else {
+    const done=()=>{ clearTimeout(timer); S.loaded=true; };
+    const err=e=>{ done(); render(); if(e&&e.code!=="revoked") $("#stamp").textContent="데이터를 불러오지 못했어요 ("+e.code+")"; };
+    const conv=snap=>snap.docs.map(d=>Object.assign({id:d.id},d.data()));
+    db.collection("issues").onSnapshot(s=>{ S.issues=conv(s); if(!s.metadata.fromCache) done(); render(); },err);
+    db.collection("asks").onSnapshot(s=>{ S.asks=conv(s); render(); },err);
+    db.collection("trace").onSnapshot(s=>{ S.trace=conv(s); render(); },err);
+    db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
+    db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
+  }
+  window.claude?.use("mcp").then(m=>{ mcp=m; }).catch(()=>{});
+  window.claude?.use("sample").then(s=>{ sample=s; }).catch(()=>{});
+}
+boot();
+})();
+</script>
+
+</body>
+</html>
