@@ -84,10 +84,6 @@ details.fold>summary::-webkit-details-marker{display:none}
     <p id="pushText">새 할 일이나 나한테 직접 온 메일이 생기면 알림을 받을 수 있어요.</p>
     <button class="btn primary" id="pushOn">알림 켜기</button>
   </div>
-  <div class="banner" id="installBanner" hidden>
-    <p>크롬 메뉴(⋮)에서 <b>홈 화면에 추가</b> 또는 <b>앱 설치</b>를 누르면 앱처럼 쓸 수 있어요.</p>
-    <button class="btn" id="installBtn" hidden>설치</button>
-  </div>
 
   <section id="v-todos"></section>
   <section id="v-direct" hidden></section>
@@ -265,14 +261,6 @@ $("#pushOn").addEventListener("click", async ()=>{
     $("#pushBanner").hidden=true; toast("알림을 켰어요. 확인 알림을 보냈어요.");
   }catch(err){ toast("알림을 켜지 못했어요: "+err.message); }
 });
-
-/* ---------- install ---------- */
-let deferred=null;
-const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-if(!standalone){ $("#installBanner").hidden=false; }
-window.addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); deferred=e; $("#installBtn").hidden=false; });
-$("#installBtn").addEventListener("click", async ()=>{ if(!deferred) return; deferred.prompt(); const r=await deferred.userChoice; deferred=null; if(r.outcome==="accepted") $("#installBanner").hidden=true; });
-window.addEventListener("appinstalled", ()=>{ $("#installBanner").hidden=true; });
 
 route(); load(); setupPush().catch(()=>{});
 })();
