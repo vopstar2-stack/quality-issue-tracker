@@ -142,6 +142,19 @@ table.tt{border-collapse:collapse;width:100%;font-size:13px}
 .rel{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
 .tchip{font-family:var(--f-mono);font-size:11.5px;border-radius:4px;padding:1px 7px;background:var(--soft);border:1px solid var(--line);color:var(--ink);cursor:pointer}
 .tchip.bad{border-color:var(--red);color:var(--red)}
+/* defect registers (수입검사 불량 / 필드 불량) */
+.dbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.dstat{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--muted);margin-bottom:8px}
+.dstat b{font-family:var(--f-mono);color:var(--ink)} .dstat .bad b{color:var(--red)}
+.ok-mark{color:var(--green);font-weight:600} .no-mark{color:var(--muted)}
+.dgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 10px}
+.dgrid .wide{grid-column:1/-1}
+@media (max-width:560px){.dgrid{grid-template-columns:1fr}}
+.dsec{grid-column:1/-1;font-size:12px;font-weight:600;color:var(--ink);border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+#dlgDef textarea{min-height:64px}
+#dlgDef{width:min(760px,calc(100vw - 32px))}
+.snwarn{grid-column:1/-1;font-size:12px;color:var(--red);background:var(--red-bg);border-radius:6px;padding:6px 10px}
+.web .editonly{display:none!important}
 /* public web copy is read-only */
 .web .actions,.web [data-act="tclose"]{display:none!important}
 /* modal */
@@ -184,6 +197,8 @@ dialog textarea{min-height:200px;resize:vertical}
     <a href="#issues" data-v="issues">이슈별 묶음<span class="cnt" id="c-issues">0</span></a>
     <a href="#signal" data-v="signal">신호등</a>
     <a href="#asks" data-v="asks">부탁 트래커<span class="cnt" id="c-asks">0</span></a>
+    <a href="#iqc" data-v="iqc">수입검사 불량<span class="cnt" id="c-iqc">0</span></a>
+    <a href="#field" data-v="field">필드 불량<span class="cnt" id="c-field">0</span></a>
     <a href="#trace" data-v="trace">추적 (S/N·부품)<span class="cnt" id="c-trace">0</span></a>
     <a href="#log" data-v="log">브리핑 기록</a>
   </nav>
@@ -198,6 +213,8 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-issues"></section>
   <section id="v-signal" hidden></section>
   <section id="v-asks" hidden></section>
+  <section id="v-iqc" hidden></section>
+  <section id="v-field" hidden></section>
   <section id="v-trace" hidden></section>
   <section id="v-log" class="log" hidden></section>
 </main>
@@ -228,13 +245,21 @@ dialog textarea{min-height:200px;resize:vertical}
   <div class="dfoot"><span class="msg" id="aMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="aSave">추가</button></div>
 </form></dialog>
 
+<dialog id="dlgDef"><form method="dialog" id="fDef">
+  <h3 id="fTitle">불량 등록</h3>
+  <div class="dgrid" id="fGrid"></div>
+  <div class="dfoot" style="justify-content:flex-start"><button type="button" id="fGen" class="editonly">Claude로 원인·대책 초안</button><span class="msg" id="fGenMsg"></span></div>
+  <div class="dfoot"><span class="msg" id="fMsg"></span><button value="cancel">닫기</button><button type="button" class="primary editonly" id="fSave">저장</button></div>
+  <p class="note" style="margin:0">S/N(또는 LOT)을 넣고 저장하면 추적 탭의 해당 S/N 이력에도 자동으로 남아요.</p>
+</form></dialog>
+
 <script>
 (() => {
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
 const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
-const S = {issues:[], asks:[], briefs:[], trace:[], tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+const S = {issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
 let db=null, mcp=null, sample=null;
 const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
 const hasData = () => !!db || (WEB && !S.loadErr);
@@ -284,11 +309,14 @@ function render(){
 
   document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current", a.dataset.v===S.view?"page":"false"));
   $("#c-trace").textContent=S.trace.filter(t=>t.kind!=="part"&&t.status!=="closed").length;
+  $("#c-iqc").textContent=S.iqc.filter(x=>x.status!=="closed").length;
+  $("#c-field").textContent=S.field.filter(x=>x.status!=="closed").length;
   VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
   $("#filters").hidden = S.view==="log";
-  $("#projChips").hidden = $("#showClosed").hidden = document.querySelector('[data-proj=""]').hidden = S.view==="trace";
-  $("#q").placeholder = S.view==="trace" ? "S/N, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
-  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog})[S.view]();
+  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field";
+  $("#projChips").hidden = $("#showClosed").hidden = document.querySelector('[data-proj=""]').hidden = plain;
+  $("#q").placeholder = plain ? "S/N, LOT, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
+  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
 }
 
 function emptyMsg(){
@@ -318,6 +346,8 @@ function issueCard(i, open){
         <button data-act="draft" data-id="${esc(i.id)}" ${mails.length?"":"disabled"}>답장 초안</button>
         <button data-act="event" data-id="${esc(i.id)}">일정 등록</button>
         <button data-act="ask" data-id="${esc(i.id)}">부탁 목록에 추가</button>
+        <button data-act="defnew" data-kind="iqc" data-id="${esc(i.id)}">수입검사 불량으로 등록</button>
+        <button data-act="defnew" data-kind="field" data-id="${esc(i.id)}">필드 불량으로 등록</button>
         <button data-act="${i.status==="closed"?"reopen":"close"}" data-id="${esc(i.id)}">${i.status==="closed"?"다시 열기":"완료 처리"}</button>
         ${i.level!=="red"?`<button data-act="lv" data-lv="red" data-id="${esc(i.id)}">처리로 올리기</button>`:`<button data-act="lv" data-lv="yellow" data-id="${esc(i.id)}">지켜봄으로 내리기</button>`}
       </div>
@@ -428,12 +458,182 @@ function traceDetail(){
   </div>`;
 }
 
+/* ---------- defect registers: 수입검사 불량(iqc) / 필드 불량(field) ---------- */
+const STAT=[["new","접수"],["analysis","원인 분석"],["action","대책 시행"],["verify","효과 확인"],["closed","종결"]];
+const STAT_T=Object.fromEntries(STAT);
+const M4=["","사람","설비","재료","방법","설계","측정","미상"];
+const DEF={
+  iqc:{name:"수입검사 불량", fields:[
+    ["#","불량 내용"],
+    ["date","발생일 *","date"],["supplier","협력사 *"],["partNo","품번 *"],["partName","품명"],
+    ["qtyIn","입고 수량","number"],["qtyNg","불량 수량","number"],
+    ["defectType","불량 유형","select",["","치수","외관","기능·전기","이종·오삽","누락·수량","포장·표기","기타"]],
+    ["disposition","처리","select",["","반품","선별","재작업","특채","폐기","업체 수리"]],
+    ["defect","불량 현상 *","area"],
+    ["#","추적성 (S/N·LOT 필수)"],
+    ["lot","LOT·제조일·입고일"],["sns","S/N (여러 개면 쉼표로)"],["noSnReason","S/N·LOT이 없으면 그 사유","wide"],
+    ["#","원인과 대책"],
+    ["cause","원인","area"],["causeType","원인 구분 (4M)","select",M4],
+    ["actionTemp","임시 대책 (봉쇄·선별)","area"],["actionPerm","영구 대책 (재발 방지)","area"],["verify","효과 확인 방법·결과","area"],
+    ["#","관리"],
+    ["owner","담당"],["due","기한","date"],["ncrNo","부적합 보고서 번호"],["status","상태","select",STAT],["note","메모","area"]
+  ]},
+  field:{name:"필드 불량", fields:[
+    ["#","불량 내용"],
+    ["date","발생일 *","date"],["site","국가·고객·설치처 *"],["model","제품·모델 *"],["errorCode","에러 코드"],
+    ["defectType","불량 유형","select",["","전원·전기","X-ray·튜브","누유","디텍터·영상","기구·소음","SW·통신","외관","기타"]],
+    ["usage","설치일·사용 기간"],
+    ["symptom","현상 *","area"],
+    ["#","추적성 (장비 S/N 필수)"],
+    ["sn","장비 S/N"],["partSn","불량 부품 S/N"],["partNo","불량 부품 품번"],["partName","부품명"],["lot","부품 LOT·제조일"],["rma","RMA 번호·회수 여부"],
+    ["newPartSn","교체 장착한 부품 S/N"],["noSnReason","S/N이 없으면 그 사유"],
+    ["#","원인과 대책"],
+    ["cause","원인","area"],["causeType","원인 구분 (4M)","select",M4],
+    ["actionTemp","현장 조치 (교체·수리)","area"],["actionPerm","영구 대책 (재발 방지)","area"],["verify","효과 확인 방법·결과","area"],
+    ["#","관리"],
+    ["owner","담당"],["due","기한","date"],["status","상태","select",STAT],["note","메모","area"]
+  ]}
+};
+const splitSn = s => String(s||"").split(/[,\n;/]+/).map(x=>x.trim()).filter(Boolean);
+const snOk = (k,x) => k==="iqc" ? !!(splitSn(x.sns).length||String(x.lot||"").trim()||String(x.noSnReason||"").trim()) : !!(String(x.sn||"").trim()||String(x.noSnReason||"").trim());
+const has = v => !!String(v??"").trim();
+function defMatch(k,x,q){ if(!q) return true; return DEF[k].fields.map(f=>f[0]==="#"?"":x[f[0]]).concat([x.issueId]).join(" ").toLowerCase().includes(q); }
+function defRepeat(k,x){ const key = k==="iqc" ? x.partNo : (x.partNo||x.sn); if(!has(key)) return 0; return S[k].filter(y=>(k==="iqc"?y.partNo:(y.partNo||y.sn))===key).length; }
+function renderDef(k){
+  const el=$("#v-"+k);
+  if(!S.loaded||!hasData()){ el.innerHTML=emptyMsg(); return; }
+  const q=S.q.trim().toLowerCase();
+  const all=S[k];
+  const xs=all.filter(x=>(S.dstat==="all"||(S.dstat==="open"?x.status!=="closed":(x.status||"new")===S.dstat)) && defMatch(k,x,q))
+    .sort((a,b)=>String(b.date||b.createdAt).localeCompare(String(a.date||a.createdAt)));
+  const open=all.filter(x=>x.status!=="closed");
+  const noCause=open.filter(x=>!has(x.cause)).length, noAct=open.filter(x=>!has(x.actionPerm)).length, noSn=all.filter(x=>!snOk(k,x)).length;
+  const chips=[["open","진행 중"],...STAT,["all","전체"]].map(([v,l])=>`<button class="chip" data-dstat="${v}" aria-pressed="${S.dstat===v}">${l}</button>`).join("");
+  const bar=`<div class="dbar">${chips}<span class="spacer"></span><button class="primary editonly" data-act="defnew" data-kind="${k}">+ 직접 등록</button></div>
+    <div class="dstat"><span>진행 중 <b>${open.length}</b></span><span class="${noCause?"bad":""}">원인 미작성 <b>${noCause}</b></span><span class="${noAct?"bad":""}">영구 대책 미작성 <b>${noAct}</b></span><span class="${noSn?"bad":""}">S/N·LOT 누락 <b>${noSn}</b></span><span>메일 정리 때 자동 분류돼요 · 행을 누르면 원인·대책을 쓰고 고칠 수 있어요</span></div>`;
+  if(!all.length){ el.innerHTML=bar+`<div class="empty">아직 등록된 ${DEF[k].name}이 없어요. 다음 메일 정리부터 자동으로 모으고, "+ 직접 등록"으로 넣을 수도 있어요.</div>`; return; }
+  const mark=(v)=>has(v)?'<span class="ok-mark">✓</span>':'<span class="no-mark">–</span>';
+  const st=x=>{ const s=x.status||"new"; return `<span class="pill ${s==="closed"?"p-done":s==="new"?"p-red":"p-yellow"}">${esc(STAT_T[s]||s)}</span>`; };
+  const snCell=x=>{ const codes = k==="iqc" ? [...splitSn(x.sns), ...(has(x.lot)?["LOT "+x.lot]:[])] : [x.sn,x.partSn].filter(has); return snOk(k,x) ? (codes.length?`<div class="code">${esc(codes.slice(0,3).join(", "))}${codes.length>3?" 외 "+(codes.length-3):""}</div>`:`<span class="note">${esc(x.noSnReason)}</span>`) : '<span class="pill p-red">S/N 없음</span>'; };
+  const rep=x=>{ const n=defRepeat(k,x); return n>=2?` <span class="pill p-red">반복 ${n}</span>`:""; };
+  const head = k==="iqc"
+    ? `<tr><th>발생일</th><th>협력사</th><th>품번 · 품명</th><th>S/N · LOT</th><th>현상</th><th>처리</th><th>원인</th><th>대책</th><th>상태</th></tr>`
+    : `<tr><th>발생일</th><th>현장</th><th>모델</th><th>S/N</th><th>현상 · 에러</th><th>원인</th><th>대책</th><th>상태</th></tr>`;
+  const row = x => k==="iqc"
+    ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`
+    : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.site||"")}</td><td>${esc(x.model||"")}</td><td>${snCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="code">${esc(x.errorCode)}</span>`:""}${rep(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
+  el.innerHTML = bar + (xs.length?`<div class="tbl-wrap"><table class="tt"><thead>${head}</thead><tbody>${xs.map(row).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 항목이 없어요.</div>`);
+}
+
+let dcur=null;
+function openDef(k,x,isNew){
+  dcur={k,id:x.id||null,isNew,base:x};
+  const ro=!db;
+  $("#fTitle").textContent=(isNew?"새 ":"")+DEF[k].name+(x.id?" · "+x.id:"");
+  $("#fGrid").innerHTML=DEF[k].fields.map(([key,label,type,opts])=>{
+    if(key==="#") return `<div class="dsec">${esc(label)}</div>`;
+    const v=x[key]??"";
+    const wide = type==="area"||type==="wide";
+    let input;
+    if(type==="select") input=`<select name="${key}" ${ro?"disabled":""}>${opts.map(o=>{ const [val,l]=Array.isArray(o)?o:[o,o||"선택"]; return `<option value="${esc(val)}" ${String(v||(key==="status"?"new":""))===val?"selected":""}>${esc(l)}</option>`; }).join("")}</select>`;
+    else if(type==="area") input=`<textarea name="${key}" ${ro?"readonly":""}>${esc(v)}</textarea>`;
+    else input=`<input name="${key}" type="${type==="date"||type==="number"?type:"text"}" value="${esc(v)}" ${ro?"readonly":""}>`;
+    return `<label class="${wide?"wide":""}">${esc(label)}${input}</label>`;
+  }).join("") + `<div class="snwarn" id="fSnWarn" hidden></div>` + (x.mails&&x.mails.length?`<div class="wide note">근거 메일: ${x.mails.map(m=>`${esc(m.from||"")} ${esc(dshort(m.at))} ${esc(m.subject||"")}`).join(" · ")}</div>`:"");
+  $("#fMsg").textContent=""; $("#fGenMsg").textContent="";
+  $("#fGen").disabled=!sample||ro; $("#fSave").disabled=ro;
+  if(!sample&&!ro) $("#fGenMsg").textContent="이 화면에서는 Claude 초안 쓰기를 쓸 수 없어요.";
+  snCheck();
+  $("#dlgDef").showModal();
+}
+function formVals(){ const o={}; $("#fGrid").querySelectorAll("[name]").forEach(e=>{ o[e.name]= e.type==="number" ? (e.value===""?"":Number(e.value)) : e.value.trim(); }); return o; }
+function snCheck(){ if(!dcur) return; const ok=snOk(dcur.k,formVals()); const w=$("#fSnWarn"); w.hidden=ok; w.textContent = dcur.k==="iqc" ? "추적성: S/N 또는 LOT을 넣어 주세요. 정말 없으면 그 사유를 적어야 저장돼요." : "추적성: 장비 S/N을 넣어 주세요. 정말 모르면 그 사유를 적어야 저장돼요."; }
+$("#fGrid").addEventListener("input",snCheck);
+const traceDocId=(p,code)=>p+"~"+String(code).toUpperCase().replace(/[^A-Za-z0-9_\-.~:@+]/g,"_");
+async function syncTrace(k,id,x){
+  // 저장한 불량을 S/N·LOT 추적 대장(trace)에도 남긴다. 같은 불량(defId)으로 남긴 이벤트는 덮어써서 중복이 생기지 않게 한다.
+  const day=(x.date||new Date().toISOString()).slice(0,10);
+  const items=[];
+  if(k==="iqc"){
+    const txt=`수입검사 불량: ${x.defect}${x.qtyNg?` (${x.qtyNg}${x.qtyIn?"/"+x.qtyIn:""}EA)`:""}${x.disposition?" → "+x.disposition:""}`;
+    splitSn(x.sns).forEach(c=>items.push({id:traceDocId("sn",c),base:{kind:"serial",code:c,model:x.partName||"",partNo:x.partNo||"",partName:x.partName||"",supplier:x.supplier||"",lot:x.lot||""},type:"불량판정",text:txt}));
+    if(has(x.lot)) items.push({id:traceDocId("lot",(x.partNo?x.partNo+" ":"")+x.lot),base:{kind:"lot",code:(x.partNo?x.partNo+" ":"")+x.lot,partNo:x.partNo||"",partName:x.partName||"",supplier:x.supplier||"",lot:x.lot},type:"입고검사",text:txt});
+  } else {
+    const txt=`필드 불량: ${x.symptom}${x.errorCode?" ["+x.errorCode+"]":""}${x.site?" @"+x.site:""}`;
+    if(has(x.sn)) items.push({id:traceDocId("sn",x.sn),base:{kind:"serial",code:x.sn,model:x.model||"",site:x.site||""},type:"발생",text:txt+(has(x.partSn)&&has(x.newPartSn)?` · 부품 교체 ${x.partSn} → ${x.newPartSn}`:"")});
+    if(has(x.partSn)) items.push({id:traceDocId("sn",x.partSn),base:{kind:"serial",code:x.partSn,model:x.partName||x.model||"",partNo:x.partNo||"",partName:x.partName||"",lot:x.lot||"",parentSn:x.sn||""},type:has(x.newPartSn)?"탈거":"발생",text:txt});
+    if(has(x.newPartSn)) items.push({id:traceDocId("sn",x.newPartSn),base:{kind:"serial",code:x.newPartSn,model:x.partName||"",partNo:x.partNo||"",partName:x.partName||"",parentSn:x.sn||""},type:"장착",text:`${x.sn||"장비"}에 교체 장착 (필드 불량 ${id})`});
+  }
+  const ids=[];
+  for(const it of items){
+    const ev={at:day,type:it.type,text:it.text,defId:id,issueId:x.issueId||""};
+    const ex=S.trace.find(t=>t.id===it.id);
+    try{
+      if(ex){
+        const evs=(ex.events||[]).filter(e=>!(e.defId===id&&e.type===it.type)).concat([ev]).slice(-100);
+        const upd={events:evs,lastAt:day>(ex.lastAt||"")?day:ex.lastAt,defIds:[...new Set([...(ex.defIds||[]),id])]};
+        Object.entries(it.base).forEach(([kk,vv])=>{ if(vv&&!ex[kk]) upd[kk]=vv; });
+        if(ex.status==="closed") upd.status="open";
+        await db.doc("trace/"+it.id).update(upd);
+      } else {
+        await db.doc("trace/"+it.id).set(Object.assign({status:"open",issueIds:x.issueId?[x.issueId]:[],firstAt:day,lastAt:day,note:"",events:[ev],defIds:[id]},it.base));
+      }
+      ids.push(it.id);
+    }catch(e){ console.warn("trace sync",it.id,e); }
+  }
+  return ids;
+}
+$("#fSave").addEventListener("click",async()=>{
+  const {k,id,isNew,base}=dcur; const x=formVals(); const msg=$("#fMsg");
+  const need = k==="iqc" ? [["date","발생일"],["supplier","협력사"],["partNo","품번"],["defect","불량 현상"]] : [["date","발생일"],["site","설치처"],["model","모델"],["symptom","현상"]];
+  const miss=need.filter(([f])=>!has(x[f])).map(([,l])=>l);
+  if(miss.length){ msg.className="msg err"; msg.textContent=miss.join(", ")+"을(를) 채워 주세요."; return; }
+  if(!snOk(k,x)){ msg.className="msg err"; msg.textContent="추적성: S/N(LOT) 또는 없는 사유를 꼭 적어 주세요."; snCheck(); return; }
+  if(!db){ msg.className="msg err"; msg.textContent="저장할 수 없어요. 로그인 상태를 확인해 주세요."; return; }
+  const now=new Date().toISOString();
+  const did = id || (k+"-"+(x.date||now.slice(0,10)).replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,6));
+  $("#fSave").disabled=true; msg.className="msg"; msg.textContent="저장하는 중…";
+  try{
+    const data=Object.assign({},x,{updatedAt:now});
+    if(x.status==="closed" && base.status!=="closed") data.closedAt=now;
+    if(isNew){ Object.assign(data,{createdAt:now,source:"manual",issueId:base.issueId||"",mails:base.mails||[]}); await db.doc(k+"/"+did).set(data); }
+    else await db.doc(k+"/"+did).update(data);
+    const tids=await syncTrace(k,did,Object.assign({},base,data));
+    if(tids.length) await db.doc(k+"/"+did).update({traceIds:tids});
+    msg.className="msg ok"; msg.textContent="저장했어요"+(tids.length?` · 추적 대장 ${tids.length}건 갱신`:"");
+    dcur.id=did; dcur.isNew=false; dcur.base=Object.assign({},base,data);
+  }catch(err){ msg.className="msg err"; msg.textContent="저장하지 못했어요: "+(err.code||"오류"); }
+  finally{ $("#fSave").disabled=false; }
+});
+$("#fGen").addEventListener("click",async()=>{
+  const {k}=dcur; const x=formVals(); const msg=$("#fGenMsg");
+  const key = k==="iqc"?x.partNo:(x.partNo||x.sn);
+  const hist=S[k].filter(y=>y.id!==dcur.id && has(key) && (y.partNo===key||y.sn===key)).slice(0,8).map(y=>`- ${y.date} ${y.defect||y.symptom} / 원인: ${y.cause||"미작성"} / 대책: ${y.actionPerm||"미작성"}`).join("\n");
+  const tr = (k==="iqc"?splitSn(x.sns):[x.sn,x.partSn].filter(has)).map(c=>S.trace.find(t=>t.code&&t.code.toUpperCase()===String(c).toUpperCase())).filter(Boolean).map(t=>`${t.code}: `+(t.events||[]).slice(-6).map(e=>`${e.at} ${e.type} ${e.text}`).join(" | ")).join("\n");
+  const prompt=`당신은 의료용 X-ray 장비 제조사 (주)레이 품질검사팀의 품질 엔지니어입니다. 아래 ${DEF[k].name} 건의 원인과 대책 초안을 씁니다.
+규칙: 한국어, 짧고 구체적으로. 확인되지 않은 것은 "[추정]"을 붙이고, 확인할 방법을 함께 적으세요. 원인은 직접 원인과 유출 원인(왜 검사에서 못 걸렀나)을 나눠 쓰세요. 영구 대책에는 반드시 추적성(S/N·LOT 기록) 관점 1개를 포함하세요. 지어낸 수치나 날짜는 쓰지 마세요.
+JSON 하나만 출력: {"cause":"...","causeType":"사람|설비|재료|방법|설계|측정|미상 중 하나","actionTemp":"...","actionPerm":"...","verify":"..."}
+
+불량 정보:
+${DEF[k].fields.filter(f=>f[0]!=="#"&&has(x[f[0]])).map(f=>`${f[1].replace(" *","")}: ${x[f[0]]}`).join("\n")}
+${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 이력:\n${tr}`:""}`;
+  $("#fGen").disabled=true; msg.className="msg"; msg.textContent="쓰는 중…";
+  try{
+    const r=await sample(prompt); const m=String(r.text).match(/\{[\s\S]*\}/); const o=JSON.parse(m?m[0]:r.text);
+    let n=0; ["cause","causeType","actionTemp","actionPerm","verify"].forEach(f=>{ const e=$("#fGrid").querySelector(`[name="${f}"]`); if(e&&!has(e.value)&&has(o[f])){ e.value=String(o[f]); n++; } });
+    msg.className="msg ok"; msg.textContent=n?`빈 칸 ${n}개를 채웠어요. 확인하고 고친 뒤 저장하세요.`:"이미 채워져 있어 바꾸지 않았어요. 칸을 비우고 다시 누르면 새로 써요.";
+  }catch(err){ msg.className="msg err"; msg.textContent= err&&err.code==="not_granted"?"Claude 사용이 허용되지 않았어요.":err&&err.code==="rate_limited"?"요청이 많아요. 잠시 후 다시 눌러 주세요.":"초안을 쓰지 못했어요. 다시 눌러 주세요."; }
+  finally{ $("#fGen").disabled=false; }
+});
+
 /* ---------- routing & filters ---------- */
-const VIEWS=["issues","signal","asks","trace","log"];
+const VIEWS=["issues","signal","asks","iqc","field","trace","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
   const tr=e.target.closest("tr[data-key]"); if(tr&&!e.target.closest("button")){ S.tsel=tr.dataset.key; render(); return; }
+  const dr=e.target.closest("tr[data-def]"); if(dr){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
+  const ds=e.target.closest("[data-dstat]"); if(ds){ S.dstat=ds.dataset.dstat; render(); return; }
   const t=e.target.closest("button,[data-open],a[data-act]"); if(!t) return;
   if(t.tagName==="A") e.preventDefault();
   if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; location.hash=t.dataset.go; route(); return; }
@@ -459,6 +659,9 @@ async function handle(act,t){
   if(act==="close"||act==="reopen"){ if(await patch("issues/"+id,{status:act==="close"?"closed":"open"})) toast(act==="close"?"완료로 옮겼어요":"다시 열었어요"); return; }
   if(act==="lv"){ await patch("issues/"+id,{level:t.dataset.lv}); return; }
   if(act==="goto"){ openIssue(id); return; }
+  if(act==="defnew"){ const k=t.dataset.kind; const i=id&&byId(id); const x={date:new Date().toISOString().slice(0,10),status:"new"};
+    if(i){ x.issueId=i.id; x[k==="iqc"?"defect":"symptom"]=i.summary||i.title; x.mails=(i.mails||[]).slice(-5).map(m=>({mid:m.mid,from:m.from,at:m.at,subject:m.subject})); }
+    openDef(k,x,true); return; }
   if(act==="trace"){ S.tsel=id; S.q=""; $("#q").value=""; location.hash="trace"; S.view="trace"; render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(act==="tclose"){ const x=tById(id); await patch("trace/"+id,{status:x.status==="closed"?"open":"closed"}); return; }
   if(act==="mv"){ const a=S.asks.find(x=>x.id===id); const k=STAGES.findIndex(s=>s[0]===(a.stage||"requested"))+Number(t.dataset.d); if(k>=0&&k<4) await patch("asks/"+id,{stage:STAGES[k][0], movedAt:new Date().toISOString()}); return; }
@@ -520,7 +723,7 @@ async function boot(){
   if(WEB){
     document.documentElement.classList.add("web"); $("#homeLink").hidden=false;
     try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
-      S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||"";
+      S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||"";
       S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
     }catch(e){ S.loadErr=true; }
     S.loaded=true; render(); return;
@@ -535,6 +738,8 @@ async function boot(){
     db.collection("issues").onSnapshot(s=>{ S.issues=conv(s); if(!s.metadata.fromCache) done(); render(); },err);
     db.collection("asks").onSnapshot(s=>{ S.asks=conv(s); render(); },err);
     db.collection("trace").onSnapshot(s=>{ S.trace=conv(s); render(); },err);
+    db.collection("iqc").onSnapshot(s=>{ S.iqc=conv(s); render(); },err);
+    db.collection("field").onSnapshot(s=>{ S.field=conv(s); render(); },err);
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
     db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
   }

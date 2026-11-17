@@ -8,7 +8,8 @@ export const MAIL_DASHBOARD_BLOB_PATHNAME = "mail-dashboard/latest.json";
 export const MAIL_DASHBOARD_MAX_BYTES = 8 * 1024 * 1024;
 
 // todos: 메일에서 뽑은 '내가 할 일', direct: 나에게 직접(To) 온 메일 — 내 할 일 앱(/todo.html)이 쓴다.
-const COLLECTIONS = ["issues", "asks", "briefs", "trace", "todos", "direct"] as const;
+// iqc: 수입검사 불량 대장, field: 필드 불량 대장 — 메일 상황판의 불량 탭이 쓴다.
+const COLLECTIONS = ["issues", "asks", "briefs", "trace", "iqc", "field", "todos", "direct"] as const;
 
 export function validateMailDashboardSnapshot(value: unknown): string | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
