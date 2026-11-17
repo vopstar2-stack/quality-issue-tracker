@@ -110,6 +110,32 @@ async function ensureSchema(pool: Pool): Promise<void> {
       AND NOT EXISTS (
         SELECT 1 FROM tank_replacement_receipts WHERE tank_replacement_id = tank_replacements.id
       );
+
+    -- 내 할 일 앱(/todo.html): 직접 적는 메모
+    CREATE TABLE IF NOT EXISTS my_memos (
+      id SERIAL PRIMARY KEY,
+      body TEXT NOT NULL,
+      due TEXT,
+      done BOOLEAN NOT NULL DEFAULT false,
+      pinned BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- 메일에서 뽑은 할 일·직접 온 메일을 앱에서 '완료/확인' 표시한 상태
+    CREATE TABLE IF NOT EXISTS my_item_state (
+      item_key TEXT PRIMARY KEY,
+      done BOOLEAN NOT NULL DEFAULT true,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    -- 웹 푸시 구독(폰마다 1행)
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
 }
 

@@ -1,15 +1,19 @@
 import { NextRequest } from "next/server";
-import { list, put } from "@vercel/blob";
+import { put } from "@vercel/blob";
 import {
   MAIL_DASHBOARD_BLOB_PATHNAME,
   MAIL_DASHBOARD_MAX_BYTES,
+  fetchLatestSnapshotResponse,
+  readLatestSnapshot,
   validateMailDashboardSnapshot,
 } from "@/lib/mail-dashboard";
+import { buildNewItemNotifications, sendPushToAll } from "@/lib/my-app";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // 사내 PC가 메일 정리 결과(JSON)를 올린다. 품질검사 대시보드와 같은 업로드 토큰을 쓴다.
+// 직전 스냅샷과 비교해 새로 생긴 할 일·직접 온 메일이 있으면 내 할 일 앱 구독 폰에 푸시를 보낸다.
 export async function POST(request: NextRequest) {
   const expected = process.env.QUALITY_DASHBOARD_UPLOAD_TOKEN;
   if (!expected) {
@@ -37,10 +41,12 @@ export async function POST(request: NextRequest) {
   if (problem) {
     return Response.json({ error: problem }, { status: 400 });
   }
+  const next = parsed as Record<string, unknown>;
+
+  const previous = await readLatestSnapshot().catch(() => null);
 
   const uploadedAt = new Date().toISOString();
-  const body = JSON.stringify({ ...(parsed as Record<string, unknown>), exportedAt: uploadedAt });
-  await put(MAIL_DASHBOARD_BLOB_PATHNAME, body, {
+  await put(MAIL_DASHBOARD_BLOB_PATHNAME, JSON.stringify({ ...next, exportedAt: uploadedAt }), {
     access: "public",
     addRandomSuffix: false,
     allowOverwrite: true,
@@ -49,25 +55,25 @@ export async function POST(request: NextRequest) {
     cacheControlMaxAge: 60,
   });
 
-  return Response.json({ ok: true, uploadedAt });
+  // ?notify=0 이면 알림 없이 데이터만 갱신한다(초기 적재·재업로드용).
+  const notify = request.nextUrl.searchParams.get("notify") !== "0";
+  const notifications = notify ? buildNewItemNotifications(previous, next) : [];
+  const push = await sendPushToAll(notifications).catch((err) => {
+    console.error("push send failed", err);
+    return { sent: 0, failed: notifications.length };
+  });
+
+  return Response.json({ ok: true, uploadedAt, notifications: notifications.length, push });
 }
 
 // 웹 상황판(public/mail-dashboard.html)이 이 데이터를 읽는다.
 export async function GET() {
-  const { blobs } = await list({ prefix: MAIL_DASHBOARD_BLOB_PATHNAME, limit: 1 });
-  const latest = blobs[0];
-  if (!latest) {
+  const res = await fetchLatestSnapshotResponse();
+  if (!res || !res.body) {
     return Response.json({ error: "아직 업로드된 메일 상황판이 없습니다." }, { status: 404 });
   }
-  const blobResponse = await fetch(latest.url, { cache: "no-store" });
-  if (!blobResponse.ok || !blobResponse.body) {
-    return Response.json({ error: "메일 상황판을 불러오지 못했습니다." }, { status: 502 });
-  }
-  return new Response(blobResponse.body, {
+  return new Response(res.body, {
     status: 200,
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
