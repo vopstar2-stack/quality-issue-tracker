@@ -4,7 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 
 const navItemClass =
-  "flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
+  "flex items-center gap-1 rounded px-1 py-0 text-xs leading-5 text-neutral-600 hover:bg-neutral-100 hover:text-neutral-900 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-neutral-100";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,21 +32,21 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-neutral-50 dark:bg-black">
-        <header className="border-b border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950">
-          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-start gap-4 px-4 py-3">
-            <Link href="/" className="text-lg font-bold">
+        <header className="sticky top-0 z-40 border-b border-neutral-200 bg-white/95 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/95">
+          <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-start gap-2 px-4 py-0.5">
+            <Link href="/" className="text-xs font-bold">
               Work Log
             </Link>
-            <nav className="flex flex-wrap items-center justify-start gap-1">
+            <nav className="flex flex-wrap items-center justify-start gap-0.5">
               <Link href="/" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <path d="M3 11.5 12 4l9 7.5" />
                   <path d="M5 10v9a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1v-9" />
                 </svg>
                 홈
               </Link>
               <Link href="/tank-replacements" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <path d="M12 3v6" />
                   <path d="M8 9h8l1.5 4.5a4.5 4.5 0 0 1-1 4.9l-.5.5a4 4 0 0 1-2.8 1.1h-2.4a4 4 0 0 1-2.8-1.1l-.5-.5a4.5 4.5 0 0 1-1-4.9L8 9Z" />
                 </svg>
@@ -58,7 +58,7 @@ export default function RootLayout({
                 rel="noopener noreferrer"
                 className={navItemClass}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <rect x="4" y="3" width="16" height="18" rx="1" />
                   <path d="M9 8h1M9 12h1M9 16h6M14 8h1" />
                 </svg>
@@ -70,7 +70,7 @@ export default function RootLayout({
                 rel="noopener noreferrer"
                 className={navItemClass}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <rect x="3" y="3" width="18" height="18" rx="1" />
                   <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
                 </svg>
@@ -82,14 +82,14 @@ export default function RootLayout({
                 rel="noopener noreferrer"
                 className={navItemClass}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <path d="M3 3v18h18" />
                   <path d="M7 15l3-4 3 2 4-6" />
                 </svg>
                 품질검사 대시보드
               </a>
               <a href="/mail-dashboard.html" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <rect x="3" y="5" width="18" height="14" rx="1" />
                   <path d="m3 7 9 6 9-6" />
                 </svg>
