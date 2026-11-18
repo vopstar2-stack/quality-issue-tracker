@@ -95,13 +95,6 @@ export default function RootLayout({
                 </svg>
                 메일 상황판
               </a>
-              <a href="/todo.html" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5 shrink-0">
-                  <path d="M9 11l3 3 8-8" />
-                  <path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9" />
-                </svg>
-                내 할 일 앱
-              </a>
             </nav>
           </div>
         </header>
