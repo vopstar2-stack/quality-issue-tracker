@@ -36,7 +36,12 @@ body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:1
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
 header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--panel);border-bottom:1px solid var(--line)}
-header.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-block:12px}
+header.top .wrap{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding-block:8px}
+header.top .stamp{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+header.top h1{white-space:nowrap}
+#homeLink{color:var(--muted);text-decoration:none;font-size:18px;line-height:1;padding:4px 2px}
+#refreshBtn{padding:4px 9px;font-size:16px;line-height:1.2;flex:none}
+@media (max-width:520px){header.top h1 .pre{display:none} h1{font-size:16px}}
 h1{font-size:18px;margin:0;font-weight:700;letter-spacing:-.01em}
 .stamp{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
 .stamp b{color:var(--ink);font-weight:500}
@@ -175,12 +180,11 @@ dialog textarea{min-height:200px;resize:vertical}
 </style>
 
 <header class="top"><div class="wrap">
-  <a id="homeLink" href="/" hidden style="color:var(--muted);text-decoration:none;font-size:13px">← Work Log</a>
-  <h1>클비서 메일 상황판</h1>
+  <a id="homeLink" href="/" hidden aria-label="Work Log 홈으로" title="Work Log 홈">←</a>
+  <h1><span class="pre">클비서 </span>메일 상황판</h1>
   <span class="stamp" id="stamp">불러오는 중…</span>
   <span class="spacer"></span>
-  <span class="stamp" id="sched"></span>
-  <button id="refreshBtn" type="button" aria-label="새로고침">새로고침</button>
+  <button id="refreshBtn" type="button" aria-label="새로고침" title="새로고침">↻</button>
 </div></header>
 
 <main class="wrap">
@@ -291,9 +295,9 @@ function visibleIssues(){
 /* ---------- render ---------- */
 function render(){
   const m=S.meta||{};
-  if(WEB && S.exportedAt) $("#sched").textContent = (m.schedule?"자동 정리 "+m.schedule+" · ":"")+"웹 반영 "+fmt(S.exportedAt);
-  $("#stamp").innerHTML = m.lastRunAt ? `마지막 정리 <b>${esc(fmt(m.lastRunAt))}</b> · ${esc(ago(m.lastRunAt))}` : (S.loaded?"아직 정리 기록이 없어요":"불러오는 중…");
-  if(!WEB) $("#sched").textContent = m.schedule ? "자동 정리 "+m.schedule : "";
+  $("#stamp").innerHTML = m.lastRunAt ? `<b>${esc(fmt(m.lastRunAt))}</b> 정리 · ${esc(ago(m.lastRunAt))}` : (S.loaded?"아직 정리 기록이 없어요":"불러오는 중…");
+  // 자동 정리 시간·웹 반영 시각은 줄 수를 늘리지 않게 마우스를 올리거나 길게 누르면 보이는 설명으로만 둔다.
+  $("#stamp").title = [m.schedule?"자동 정리 "+m.schedule:"", WEB&&S.exportedAt?"웹 반영 "+fmt(S.exportedAt):""].filter(Boolean).join(" · ");
   const last=S.briefs[0];
   if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; $("#briefList").innerHTML=(last.items||[]).map(t=>`<li>${esc(t)}</li>`).join(""); } else $("#brief").hidden=true;
 
@@ -744,9 +748,9 @@ async function loadWeb(){
 $("#refreshBtn").addEventListener("click", async ()=>{
   const b=$("#refreshBtn"); if(b.disabled) return;
   if(!WEB){ location.reload(); return; }
-  b.disabled=true; b.textContent="불러오는 중…";
+  b.disabled=true; b.style.opacity=".5";
   await loadWeb();
-  b.disabled=false; b.textContent="새로고침";
+  b.disabled=false; b.style.opacity="";
   toast(S.loadErr?"불러오지 못했어요":"최신 내용으로 바꿨어요");
 });
 async function boot(){
