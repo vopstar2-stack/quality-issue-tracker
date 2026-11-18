@@ -136,6 +136,13 @@ async function ensureSchema(pool: Pool): Promise<void> {
       auth TEXT NOT NULL,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+
+    -- 앱 상태값(예: mail_auth = 메일 연결 끊김 여부)
+    CREATE TABLE IF NOT EXISTS app_status (
+      status_key TEXT PRIMARY KEY,
+      value JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
   `);
 }
 

@@ -67,6 +67,23 @@ export async function setItemState(key: string, done: boolean): Promise<void> {
   );
 }
 
+// ---------- 메일 연결 상태 ----------
+// 예약 작업이 Outlook을 못 읽으면(회사 계정 재인증 필요 등) ok:false로 기록하고, 다음에 읽히면 ok:true로 바꾼다.
+export type MailAuthStatus = { ok: boolean; at: string; message: string; since?: string };
+
+export async function getMailAuthStatus(): Promise<MailAuthStatus | null> {
+  const rows = await query<{ value: MailAuthStatus }>("SELECT value FROM app_status WHERE status_key = 'mail_auth'");
+  return rows[0]?.value ?? null;
+}
+
+export async function setMailAuthStatus(value: MailAuthStatus): Promise<void> {
+  await query(
+    `INSERT INTO app_status (status_key, value, updated_at) VALUES ('mail_auth', $1, now())
+     ON CONFLICT (status_key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`,
+    [JSON.stringify(value)],
+  );
+}
+
 // ---------- 웹 푸시 ----------
 export type PushPayload = { title: string; body: string; url?: string; tag?: string };
 
