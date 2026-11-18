@@ -178,6 +178,7 @@ dialog textarea{min-height:200px;resize:vertical}
   <span class="stamp" id="stamp">불러오는 중…</span>
   <span class="spacer"></span>
   <span class="stamp" id="sched"></span>
+  <button id="refreshBtn" type="button" aria-label="새로고침">새로고침</button>
 </div></header>
 
 <main class="wrap">
@@ -718,15 +719,27 @@ $("#aSave").addEventListener("click",async()=>{
 });
 
 /* ---------- data ---------- */
+async function loadWeb(){
+  try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
+    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||"";
+    S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
+    S.loadErr=false;
+  }catch(e){ S.loadErr=true; }
+  S.loaded=true; render();
+}
+$("#refreshBtn").addEventListener("click", async ()=>{
+  const b=$("#refreshBtn"); if(b.disabled) return;
+  if(!WEB){ location.reload(); return; }
+  b.disabled=true; b.textContent="불러오는 중…";
+  await loadWeb();
+  b.disabled=false; b.textContent="새로고침";
+  toast(S.loadErr?"불러오지 못했어요":"최신 내용으로 바꿨어요");
+});
 async function boot(){
   route();
   if(WEB){
     document.documentElement.classList.add("web"); $("#homeLink").hidden=false;
-    try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
-      S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||"";
-      S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
-    }catch(e){ S.loadErr=true; }
-    S.loaded=true; render(); return;
+    await loadWeb(); return;
   }
   const timer=setTimeout(()=>{ if(!S.loaded){ S.loaded=true; render(); $("#stamp").textContent="데이터에 아직 연결되지 않았어요"; } },10000);
   try{ db = await window.claude?.use("db"); }catch(_){ db=null; }
