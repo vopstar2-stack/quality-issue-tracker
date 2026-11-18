@@ -70,6 +70,8 @@ nav.tabs .cnt{font-family:var(--f-mono);font-size:11px;background:var(--soft);bo
 .list{display:flex;flex-direction:column;gap:8px}
 .issue{background:var(--panel);border:1px solid var(--line);border-radius:8px;border-left:4px solid var(--grey);min-width:0}
 .issue.red{border-left-color:var(--red)} .issue.yellow{border-left-color:var(--amber)}
+.issue.focus{box-shadow:0 0 0 3px var(--accent);border-color:var(--accent)}
+@media (prefers-reduced-motion:no-preference){.issue.focus{transition:box-shadow .3s}}
 .issue>summary{list-style:none;cursor:pointer;padding:10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 12px}
 .issue>summary::-webkit-details-marker{display:none}
 .ititle{font-weight:600;font-size:15px;min-width:0;overflow-wrap:anywhere}
@@ -260,7 +262,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
 const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
-const S = {issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+const S = {openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
 let db=null, mcp=null, sample=null;
 const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
 const hasData = () => !!db || (WEB && !S.loadErr);
@@ -332,7 +334,7 @@ function issueCard(i, open){
   const lv=LV[i.level]||LV.white;
   const mails=(i.mails||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at)));
   const filt=[S.onlyNew?"새 소식만":"",S.onlyDue?"기한 임박만":""].filter(Boolean);
-  return `<details class="issue ${esc(i.level)}" data-id="${esc(i.id)}" ${open?"open":""}>
+  return `<details class="issue ${esc(i.level)}${i.id===S.focusId?" focus":""}" data-id="${esc(i.id)}" ${open?"open":""}>
     <summary>
       <div class="ititle">${esc(i.title)}</div>
       <div class="imeta">${i.isNew?'<span class="pill p-new">NEW</span>':""}<span class="pill ${lv.c}">${lv.t}</span>${i.status==="closed"?'<span class="pill p-done">완료</span>':""}</div>
@@ -359,7 +361,7 @@ function issueCard(i, open){
 function renderIssues(){
   const list=visibleIssues();
   const banner=(S.onlyNew||S.onlyDue)?`<p class="note">${S.onlyNew?"직전 정리 이후 새 소식만":"기한 3일 이내·지난 것만"} 보는 중 · <button id="clearQuick">모두 보기</button></p>`:"";
-  $("#v-issues").innerHTML = banner + (list.length?`<div class="list">${list.map(i=>issueCard(i,false)).join("")}</div>`:emptyMsg());
+  $("#v-issues").innerHTML = banner + (list.length?`<div class="list">${list.map(i=>issueCard(i,S.openIds.has(i.id))).join("")}</div>`:emptyMsg());
 }
 
 function renderSignal(){
@@ -647,7 +649,19 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Enter"&&e.target.dataset&&e.target.dataset.open) openIssue(e.target.dataset.open); });
 $("#q").addEventListener("input",e=>{ S.q=e.target.value; render(); });
-function openIssue(id){ S.onlyNew=S.onlyDue=false; S.closed=S.closed||(S.issues.find(i=>i.id===id)||{}).status==="closed"; location.hash="issues"; S.view="issues"; render(); const el=document.querySelector(`.issue[data-id="${CSS.escape(id)}"]`); if(el){ el.open=true; el.scrollIntoView({block:"start",behavior:"smooth"}); } }
+function openIssue(id){
+  S.onlyNew=S.onlyDue=false; S.closed=S.closed||(S.issues.find(i=>i.id===id)||{}).status==="closed";
+  S.openIds.add(id); S.focusId=id; S.view="issues";
+  // location.hash를 바꾸면 hashchange → 다시 그리기가 한 번 더 일어나 카드가 닫히고 위치가 틀어진다. 주소만 바꾸고 이벤트는 안 낸다.
+  if(location.hash!=="#issues") history.pushState(null,"","#issues");
+  render();
+  requestAnimationFrame(()=>{ const el=document.querySelector(`.issue[data-id="${CSS.escape(id)}"]`); if(!el) return;
+    const head=document.querySelector("header.top"); const off=(head?head.getBoundingClientRect().bottom:0)+12;
+    window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off),behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+    clearTimeout(openIssue.t); openIssue.t=setTimeout(()=>{ S.focusId=null; el.classList.remove("focus"); },2500); });
+}
+// 사용자가 펼치고 접은 카드는 다시 그려도 그대로 둔다.
+document.addEventListener("toggle",e=>{ const d=e.target; if(d.classList&&d.classList.contains("issue")&&d.dataset.id){ d.open?S.openIds.add(d.dataset.id):S.openIds.delete(d.dataset.id); } },true);
 
 /* ---------- actions ---------- */
 const byId = id => S.issues.find(i=>i.id===id);
