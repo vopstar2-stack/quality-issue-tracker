@@ -52,7 +52,10 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 button[disabled]{opacity:.5;cursor:default}
 .brief{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
-.brief h2{margin:0 0 6px;font-size:15px}
+.brief h2{margin:0;font-size:15px}
+.brief .briefTop{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin-bottom:6px}
+.brief .logLink{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
+.brief .logLink:hover{text-decoration:underline}
 .brief ul{margin:0;padding-left:18px}
 .brief li{margin:2px 0}
 .kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
@@ -190,7 +193,7 @@ dialog textarea{min-height:200px;resize:vertical}
 <main class="wrap">
   <div id="connAlert" role="alert" hidden style="margin:12px 0 0;padding:10px 14px;border-radius:10px;background:#fde8e8;color:#9b1c1c;border:1px solid #f5b5b5;font-weight:600;font-size:14px"></div>
   <section class="brief" id="brief" hidden>
-    <h2 id="briefHead"></h2>
+    <div class="briefTop"><h2 id="briefHead"></h2><a href="#log" class="logLink">브리핑 기록 ›</a></div>
     <ul id="briefList"></ul>
   </section>
 
@@ -208,7 +211,6 @@ dialog textarea{min-height:200px;resize:vertical}
     <a href="#iqc" data-v="iqc">수입검사 불량<span class="cnt" id="c-iqc">0</span></a>
     <a href="#field" data-v="field">필드 불량<span class="cnt" id="c-field">0</span></a>
     <a href="#trace" data-v="trace">추적 (S/N·부품)<span class="cnt" id="c-trace">0</span></a>
-    <a href="#log" data-v="log">브리핑 기록</a>
   </nav>
 
   <div class="filters" id="filters">
