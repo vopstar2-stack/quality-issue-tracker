@@ -53,8 +53,9 @@ button.primary{background:var(--accent);color:var(--accent-ink);border-color:var
 button[disabled]{opacity:.5;cursor:default}
 .brief{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
 .brief h2{margin:0;font-size:15px}
-.brief .briefTop{display:flex;align-items:baseline;gap:6px 12px;flex-wrap:wrap;margin-bottom:6px}
-.brief .logLink{font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
+.brief .briefTop{display:flex;align-items:baseline;gap:12px;flex-wrap:nowrap;margin-bottom:6px}
+.brief .briefTop h2{flex:1;min-width:0}
+.brief .logLink{flex-shrink:0;font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
 .brief .logLink:hover{text-decoration:underline}
 .brief ul{margin:0;padding-left:18px}
 .brief li{margin:2px 0}
