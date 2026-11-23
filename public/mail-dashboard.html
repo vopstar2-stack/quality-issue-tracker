@@ -407,7 +407,7 @@ function renderRma(q){
       <span class="code">${esc(x.partSn||x.sn||"S/N 없음")}</span>
       <div class="m"><span>${esc(x.site||"")}</span><span>${esc(x.partName||x.model||"")}</span></div>
       <div class="m"><span>${esc((x.symptom||"").slice(0,40))}</span></div>
-      <div class="m">${x.rma?`<span>${esc(x.rma)}</span>`:""}<span class="age">${k==="완료"?"완료":"이 단계 "+rmaSince(x)+"일"}</span></div>
+      <div class="m">${x.rma?`<span>${esc(String(x.rma).length>36?String(x.rma).slice(0,36)+"…":x.rma)}</span>`:""}<span class="age">${k==="완료"?"완료":"이 단계 "+rmaSince(x)+"일"}</span></div>
       <div class="rsteps">${RMA_ST.map((_,j)=>`<i class="${j<=si?"on":""}"></i>`).join("")}</div></div>`).join("")||'<p class="note" style="margin:4px">없음</p>'}</div>`; }).join("")}</div>
     <p class="note">한 단계에 7일 넘게 머문 건은 빨간 테두리로 표시돼요. 카드를 누르면 단계를 바꿀 수 있어요.</p>`;
 }
