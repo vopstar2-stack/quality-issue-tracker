@@ -74,7 +74,7 @@ button[disabled]{opacity:.5;cursor:default}
 .brief .briefTop h2{flex:1;min-width:0}
 .brief .logLink{flex-shrink:0;font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
 .brief .logLink:hover{text-decoration:underline}
-/* 브리핑: 항목마다 굵은 제목 한 줄 + 회색 설명, 3개까지만 보이고 나머지는 접기 */
+/* 브리핑: 항목마다 굵은 제목 한 줄 + 회색 설명 (접지 않고 전부 보인다 — 사용자 요청) */
 .brief ul{margin:0;padding:0;list-style:none}
 .brief li{padding:7px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline}
 .brief li:first-child{border-top:0}
@@ -379,8 +379,7 @@ function render(){
   // 자동 정리 시간·웹 반영 시각은 줄 수를 늘리지 않게 마우스를 올리거나 길게 누르면 보이는 설명으로만 둔다.
   $("#stamp").title = [m.schedule?"자동 정리 "+m.schedule:"", WEB&&S.exportedAt?"웹 반영 "+fmt(S.exportedAt):""].filter(Boolean).join(" · ");
   const last=S.briefs[0];
-  if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; const its=last.items||[]; const shown=S.briefAll?its:its.slice(0,3);
-    $("#briefList").innerHTML=shown.map(briefItem).join("")+(its.length>3?`<li><button class="bmore" id="briefMore">${S.briefAll?"접기":`나머지 ${its.length-3}건 더 보기`}</button></li>`:""); } else $("#brief").hidden=true;
+  if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; $("#briefList").innerHTML=(last.items||[]).map(briefItem).join(""); } else $("#brief").hidden=true;
 
   const open=S.issues.filter(i=>i.status!=="closed");
   renderReply(open);
@@ -892,7 +891,6 @@ document.addEventListener("click",e=>{
   if(t.dataset.qmode){ S.qmode=t.dataset.qmode; render(); return; }
   if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
   if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"&&S.view!=="signal"){ location.hash="issues"; } render(); return; }
-  if(t.id==="briefMore"){ S.briefAll=!S.briefAll; render(); return; }
   if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
   if(t.hasAttribute("data-proj")&&t.classList.contains("chip")){ S.proj=t.dataset.proj; render(); return; }
   if(t.id==="showClosed"){ S.closed=!S.closed; render(); return; }
