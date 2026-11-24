@@ -74,19 +74,24 @@ button[disabled]{opacity:.5;cursor:default}
 .brief .briefTop h2{flex:1;min-width:0}
 .brief .logLink{flex-shrink:0;font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
 .brief .logLink:hover{text-decoration:underline}
-.brief ul{margin:0;padding-left:18px}
-.brief li{margin:2px 0}
-.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}
-.kpi{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;cursor:pointer;text-align:left;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:2px;white-space:normal}
-.kpi:hover{color:inherit}
-.kpi .n{font-family:var(--f-mono);font-size:28px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15;color:var(--ink)}
+/* 브리핑: 항목마다 굵은 제목 한 줄 + 회색 설명, 3개까지만 보이고 나머지는 접기 */
+.brief ul{margin:0;padding:0;list-style:none}
+.brief li{padding:7px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline}
+.brief li:first-child{border-top:0}
+.brief .bt{grid-column:1/-1;font-weight:600;font-size:14px;line-height:1.45;color:var(--ink);overflow-wrap:anywhere}
+.brief .bd{grid-column:1/-1;font-size:12.5px;line-height:1.5;color:var(--muted);overflow-wrap:anywhere}
+.brief .bmore{margin-top:4px;font-size:12px;color:var(--accent);background:none;border:0;padding:2px 0;cursor:pointer}
+/* KPI: 한 줄짜리 작은 칩 */
+.kpis{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:4px 12px 4px 10px;cursor:pointer;display:inline-flex;align-items:baseline;gap:6px;white-space:nowrap}
+.kpi:hover{color:inherit;border-color:var(--accent)}
+.kpi .n{font-family:var(--f-mono);font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--ink)}
 .kpi .l{font-size:12px;color:var(--muted);font-weight:500}
 .kpi.r .n{color:var(--red)} .kpi.a .n{color:var(--amber)} .kpi.b .n{color:var(--accent)}
 .kpi .n.zero{color:var(--muted)!important;opacity:.6}
-@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px} .kpi{padding:10px 12px} .kpi .n{font-size:24px}}
 nav.tabs{display:flex;gap:2px;margin-top:18px;overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;scrollbar-width:none}
 nav.tabs::-webkit-scrollbar{display:none}
-nav.tabs a{padding:7px 12px;color:var(--muted);text-decoration:none;border-radius:7px;white-space:nowrap;font-weight:500;font-size:13px}
+nav.tabs a{padding:6px 10px;color:var(--muted);text-decoration:none;border-radius:7px;white-space:nowrap;font-weight:500;font-size:13px}
 nav.tabs a:hover{color:var(--ink);background:var(--soft)}
 nav.tabs a[aria-current="page"]{color:var(--accent-ink);background:var(--accent)}
 nav.tabs .cnt{font-family:var(--f-mono);font-size:11px;background:var(--soft);color:var(--muted);border-radius:9px;padding:0 6px;margin-left:5px}
@@ -259,20 +264,20 @@ dialog textarea{min-height:200px;resize:vertical}
   <section class="reply" id="reply" hidden aria-label="답장 대기"></section>
 
   <div class="kpis" id="kpis">
-    <button class="kpi r" data-go="signal"><div class="n" id="k-red">–</div><div class="l">내가 처리할 것</div></button>
-    <button class="kpi a" data-go="issues" data-due="1"><div class="n" id="k-due">–</div><div class="l">기한 3일 이내·지남</div></button>
-    <button class="kpi b" data-go="asks"><div class="n" id="k-ask">–</div><div class="l">회신 기다리는 부탁</div></button>
-    <button class="kpi" data-go="field" data-rma="1"><div class="n" id="k-rma">–</div><div class="l">RMA 진행 중 (7일 정체 <span id="k-rma-st">0</span>)</div></button>
+    <button class="kpi r" data-go="signal" title="내가 처리할 것"><span class="n" id="k-red">–</span><span class="l">처리할 것</span></button>
+    <button class="kpi a" data-go="issues" data-due="1" title="기한 3일 이내·지남"><span class="n" id="k-due">–</span><span class="l">기한 임박</span></button>
+    <button class="kpi b" data-go="asks" title="회신 기다리는 부탁"><span class="n" id="k-ask">–</span><span class="l">회신 대기</span></button>
+    <button class="kpi" data-go="field" data-rma="1" title="RMA 진행 중 · 한 단계에서 7일 넘게 정체된 건"><span class="n" id="k-rma">–</span><span class="l">RMA 진행 · 정체 <span id="k-rma-st">0</span></span></button>
   </div>
 
   <nav class="tabs" aria-label="보기">
-    <a href="#issues" data-v="issues">이슈별 묶음<span class="cnt" id="c-issues">0</span></a>
+    <a href="#issues" data-v="issues" title="이슈별 묶음">이슈<span class="cnt" id="c-issues">0</span></a>
     <a href="#signal" data-v="signal">신호등</a>
-    <a href="#asks" data-v="asks">부탁 트래커<span class="cnt" id="c-asks">0</span></a>
-    <a href="#iqc" data-v="iqc">수입검사 불량<span class="cnt" id="c-iqc">0</span></a>
-    <a href="#field" data-v="field">필드 불량<span class="cnt" id="c-field">0</span></a>
-    <a href="#trace" data-v="trace">추적 (S/N·부품)<span class="cnt" id="c-trace">0</span></a>
-    <a href="#ylink" data-v="ylink">Y: 대장 대조<span class="cnt" id="c-ylink">0</span></a>
+    <a href="#asks" data-v="asks" title="부탁 트래커">부탁<span class="cnt" id="c-asks">0</span></a>
+    <a href="#iqc" data-v="iqc" title="수입검사 불량">수입검사<span class="cnt" id="c-iqc">0</span></a>
+    <a href="#field" data-v="field" title="필드 불량">필드<span class="cnt" id="c-field">0</span></a>
+    <a href="#trace" data-v="trace" title="추적 (S/N·부품)">추적<span class="cnt" id="c-trace">0</span></a>
+    <a href="#ylink" data-v="ylink" title="Y: 대장 대조">Y: 대장<span class="cnt" id="c-ylink">0</span></a>
     <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
   </nav>
 
@@ -374,7 +379,8 @@ function render(){
   // 자동 정리 시간·웹 반영 시각은 줄 수를 늘리지 않게 마우스를 올리거나 길게 누르면 보이는 설명으로만 둔다.
   $("#stamp").title = [m.schedule?"자동 정리 "+m.schedule:"", WEB&&S.exportedAt?"웹 반영 "+fmt(S.exportedAt):""].filter(Boolean).join(" · ");
   const last=S.briefs[0];
-  if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; $("#briefList").innerHTML=(last.items||[]).map(t=>`<li>${esc(t)}</li>`).join(""); } else $("#brief").hidden=true;
+  if(last){ $("#brief").hidden=false; $("#briefHead").textContent=last.headline||"최근 브리핑"; const its=last.items||[]; const shown=S.briefAll?its:its.slice(0,3);
+    $("#briefList").innerHTML=shown.map(briefItem).join("")+(its.length>3?`<li><button class="bmore" id="briefMore">${S.briefAll?"접기":`나머지 ${its.length-3}건 더 보기`}</button></li>`:""); } else $("#brief").hidden=true;
 
   const open=S.issues.filter(i=>i.status!=="closed");
   renderReply(open);
@@ -407,6 +413,14 @@ function render(){
   ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
 }
 
+// 브리핑 한 줄을 "제목(굵게) + 설명(회색)"으로 나눈다: 앞쪽 ":" 또는 " — " 를 기준으로.
+function briefItem(t){
+  t=String(t||""); let i=-1, k=0;
+  const c=t.indexOf(":"), d=t.indexOf(" — ");
+  if(c>0&&c<=40&&(d<0||c<d)){ i=c; k=1; } else if(d>0&&d<=60){ i=d; k=3; }
+  if(i<0) return `<li><div class="bt">${esc(t)}</div></li>`;
+  return `<li><div class="bt">${esc(t.slice(0,i).trim())}</div><div class="bd">${esc(t.slice(i+k).trim())}</div></li>`;
+}
 /* ---------- 답장 대기: 메일 정리 때 replyWait가 채워진 이슈 (나한테 온 질문·요청에 아직 내가 답장을 안 보냄) ---------- */
 const replyAge = i => daysSince(i.replyWait && i.replyWait.at);
 function renderReply(open){
@@ -878,6 +892,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.qmode){ S.qmode=t.dataset.qmode; render(); return; }
   if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
   if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"&&S.view!=="signal"){ location.hash="issues"; } render(); return; }
+  if(t.id==="briefMore"){ S.briefAll=!S.briefAll; render(); return; }
   if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
   if(t.hasAttribute("data-proj")&&t.classList.contains("chip")){ S.proj=t.dataset.proj; render(); return; }
   if(t.id==="showClosed"){ S.closed=!S.closed; render(); return; }
