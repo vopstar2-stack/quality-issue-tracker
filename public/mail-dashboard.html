@@ -608,7 +608,7 @@ function thumbRow(mid){ const xs=mid&&S.thumbs[mid]; if(!xs||!xs.length) return 
   return `<div class="thumbs">${xs.map((t,k)=>`<img src="${esc(t.d)}" alt="${esc(t.n||"메일 사진")}" loading="lazy" data-zoom="${esc(mid)}" data-k="${k}" title="크게 보기">`).join("")}</div>`; }
 document.addEventListener("click",e=>{ const im=e.target.closest("img[data-zoom]"); if(!im) return; e.stopPropagation();
   const t=(S.thumbs[im.dataset.zoom]||[])[Number(im.dataset.k)]; if(!t) return;
-  $("#imgBig").src=t.d; $("#imgCap").textContent=t.n||""; $("#dlgImg").showModal(); },true);
+  $("#imgBig").src=t.d; $("#imgCap").textContent=/^mcp-|blob-/.test(t.n||"")?"메일 첨부 사진":(t.n||""); $("#dlgImg").showModal(); },true);
 
 function issueCard(i, open){
   const lv=LV[i.level]||LV.white;
