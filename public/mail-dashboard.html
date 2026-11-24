@@ -165,6 +165,11 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .thread .who{font-weight:600} .thread .when{font-family:var(--f-mono);font-size:11px;color:var(--muted);margin-left:6px}
 .thread .gist{color:var(--ink)}
 .thread a{color:var(--accent);font-size:12px}
+.thumbs{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 4px}
+.thumbs img{height:72px;width:auto;max-width:140px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in;background:var(--soft)}
+.thumbs img:hover{border-color:var(--accent)}
+.imgdlg{max-width:min(92vw,560px)}
+.imgdlg img{display:block;width:100%;height:auto;border-radius:8px}
 .actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 /* signal view */
 .lanes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -306,6 +311,8 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-log" class="log" hidden></section>
 </main>
 
+<dialog id="dlgImg" class="imgdlg"><form method="dialog"><img id="imgBig" alt=""><div class="dfoot"><span class="note" id="imgCap"></span><button value="close">닫기</button></div></form></dialog>
+
 <dialog id="dlgDraft"><form method="dialog" id="fDraft">
   <h3 id="dTitle">답장 초안</h3>
   <label>받는 메일<select id="dMail"></select></label>
@@ -346,7 +353,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
 const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
-const S = {qm:[], qmMeet:[], qmode:"next", qstage:"", y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+const S = {thumbs:{}, qm:[], qmMeet:[], qmode:"next", qstage:"", y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
 let db=null, mcp=null, sample=null;
 const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
 const hasData = () => !!db || (WEB && !S.loadErr);
@@ -555,7 +562,7 @@ function qmCard(a, since){
       ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map((x,j)=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <button class="qbtn editonly" data-act="qask" data-id="${esc(a.id)}" data-i="${j}">${x.done?"대기로 되돌리기":"완료 처리"}</button> <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
       ${fl.length?`<div class="rel"><span class="note">필드 불량 대장</span>${fl.map(x=>`<button class="tchip" data-def="${esc(x.id)}" data-kind="field">${esc(x.sn)} · ${esc(dshort(x.date))}</button>`).join("")}</div>`:""}
       ${(a.meetings||[]).length?`<p class="note">회의에서 다룬 날: ${a.meetings.map(d=>esc(dshort(d))).join(", ")}</p>`:""}
-      <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${ol(e.mid)}</li>`).join("")}</ul>
+      <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${thumbRow(e.mid)}${ol(e.mid)}</li>`).join("")}</ul>
       <div class="actions editonly"><button data-act="qclose" data-id="${esc(a.id)}" class="${closed?"":"primary"}">${closed?"다시 열기":"종결 처리"}</button><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
     </div>
   </details>`;
@@ -594,6 +601,14 @@ function emptyMsg(){
   return `<div class="empty">조건에 맞는 이슈가 없어요. 필터를 풀어 보세요.</div>`;
 }
 
+/* ---------- 메일 사진 썸네일 (thumbs 컬렉션: {mid, items:[{n,w,h,d}]}, 메일 정리가 thumb.py로 만든다) ---------- */
+function setThumbs(list){ const m={}; (list||[]).forEach(t=>{ if(t&&t.mid) m[t.mid]=t.items||[]; }); S.thumbs=m; }
+function thumbRow(mid){ const xs=mid&&S.thumbs[mid]; if(!xs||!xs.length) return "";
+  return `<div class="thumbs">${xs.map((t,k)=>`<img src="${esc(t.d)}" alt="${esc(t.n||"메일 사진")}" loading="lazy" data-zoom="${esc(mid)}" data-k="${k}" title="크게 보기">`).join("")}</div>`; }
+document.addEventListener("click",e=>{ const im=e.target.closest("img[data-zoom]"); if(!im) return; e.stopPropagation();
+  const t=(S.thumbs[im.dataset.zoom]||[])[Number(im.dataset.k)]; if(!t) return;
+  $("#imgBig").src=t.d; $("#imgCap").textContent=t.n||""; $("#dlgImg").showModal(); },true);
+
 function issueCard(i, open){
   const lv=LV[i.level]||LV.white;
   const mails=(i.mails||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at)));
@@ -608,7 +623,7 @@ function issueCard(i, open){
     <div class="ibody">
       ${i.summary?`<p>${esc(i.summary)}</p>`:""}
       ${(()=>{ const ts=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)); return ts.length?`<div class="rel" style="margin-top:8px"><span class="note">추적 대상</span>${ts.map(t=>`<button class="tchip ${t.status!=="closed"&&t.kind!=="part"?"bad":""}" data-act="trace" data-id="${esc(t.id)}">${esc(t.code)}</button>`).join("")}</div>`:""; })()}
-      <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
+      <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${thumbRow(m.mid)}${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
       <div class="actions">
         <button data-act="draft" data-id="${esc(i.id)}" ${mails.length?"":"disabled"}>답장 초안</button>
         <button data-act="event" data-id="${esc(i.id)}">일정 등록</button>
@@ -1026,7 +1041,7 @@ $("#aSave").addEventListener("click",async()=>{
 /* ---------- data ---------- */
 async function loadWeb(){
   try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
-    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]);
+    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]); setThumbs(d.thumbs||[]);
     S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
     S.loadErr=false;
   }catch(e){ S.loadErr=true; }
@@ -1059,6 +1074,7 @@ async function boot(){
     db.collection("iqc").onSnapshot(s=>{ S.iqc=conv(s); render(); },err);
     db.collection("field").onSnapshot(s=>{ S.field=conv(s); render(); },err);
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
+    db.collection("thumbs").onSnapshot(s=>{ setThumbs(conv(s)); render(); },()=>{});
     db.collection("qmeet").onSnapshot(s=>{ setQm(conv(s)); render(); },()=>{});
     db.collection("ylink").onSnapshot(s=>{ const o={}; s.docs.forEach(d=>{ o[d.id]=d.data(); }); setY(o); render(); },()=>{});
     db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
