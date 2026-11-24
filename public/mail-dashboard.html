@@ -75,7 +75,10 @@ button[disabled]{opacity:.5;cursor:default}
 .brief .logLink{flex-shrink:0;font-size:13px;color:var(--accent);text-decoration:none;white-space:nowrap;font-weight:500}
 .brief .logLink:hover{text-decoration:underline}
 /* 브리핑: 항목마다 굵은 제목 한 줄 + 회색 설명 (접지 않고 전부 보인다 — 사용자 요청) */
-.brief ul{margin:0;padding:0;list-style:none}
+.brief ul{margin:0;padding:0;list-style:none;counter-reset:bn}
+.brief li{counter-increment:bn}
+.brief .bt::before{content:counter(bn) ". ";font-family:var(--f-mono);color:var(--accent);font-weight:600}
+.brief .bd{padding-left:1.6em}
 .brief li{padding:7px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 10px;align-items:baseline}
 .brief li:first-child{border-top:0}
 .brief .bt{grid-column:1/-1;font-weight:600;font-size:14px;line-height:1.45;color:var(--ink);overflow-wrap:anywhere}
