@@ -424,7 +424,9 @@ const yRegFor = x => !has(x.partNo) ? null : S.y.regIqc.filter(r=>npn(r.pn)===np
 const iqcForReg = r => S.iqc.filter(x=>npn(x.partNo)===npn(r.pn) && dgap(r.d,x.date)<=30);
 const yOldest = () => (S.y.regIqc[S.y.regIqc.length-1]||{}).d || "";
 const yMissing = () => S.y.regIqc.length ? S.iqc.filter(x=>{ const m=yRegFor(x); return m && !m.length && (x.date||"")>=yOldest(); }) : [];
-function yRegCell(x){ if(!S.y.regIqc.length) return '<span class="no-mark">–</span>'; const m=yRegFor(x); if(m==null) return '<span class="note">품번 없음</span>'; return m.length?`<span class="ok-mark" title="${esc(m.map(r=>r.d+" "+r.det).join("\n"))}">✓</span>`:'<span class="pill p-yellow">미등록</span>'; }
+const yLast = () => (S.y.regIqc[0]||{}).d || "";
+const yBehind = x => (x.date||"") > yLast();
+function yRegCell(x){ if(!S.y.regIqc.length) return '<span class="no-mark">–</span>'; const m=yRegFor(x); if(m==null) return '<span class="note">품번 없음</span>'; return m.length?`<span class="ok-mark" title="${esc(m.map(r=>r.d+" "+r.det).join("\n"))}">✓</span>`:(yBehind(x)?`<span class="pill p-white" title="Y: 대장 마지막 기록이 ${esc(yLast())}이에요">입력 전</span>`:'<span class="pill p-yellow">미등록</span>'); }
 const finBySn = code => { const c=String(code||"").toUpperCase(); return c ? S.y.finalIss.filter(r=>r.sn===c) : []; };
 function yTraceBlock(t){
   const fin=finBySn(t.code), rq=S.y.rayqc.filter(r=>r.sn && r.sn===String(t.code).toUpperCase());
@@ -448,8 +450,8 @@ function renderYlink(){
   const tbl=(h,rows)=>`<div class="tbl-wrap"><table class="tt"><thead><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
   const sec=(t,n,sub,body)=>`<h3 class="ysec">${t} <span class="note">${n}</span></h3>${sub?`<p class="note" style="margin:0 0 6px">${sub}</p>`:""}${body}`;
   el.innerHTML=`<p class="note">Y: 드라이브 엑셀을 <b>읽기만</b> 해서 메일 대장과 맞춰 봐요. 원본 엑셀은 고치지 않아요. 마지막으로 읽은 시각 ${esc(fmt(y.meta.syncedAt))}${y.meta.rayqcError?" · rayqc 읽기 실패":""}</p>`+
-  sec("메일엔 있는데 Y: 수입검사 불량 대장에 없는 건",miss.length,"품번이 같고 날짜가 ±30일 안인 대장 행이 없으면 여기 나와요. 대장 등록은 담당자가 직접 해 주세요.",
-    miss.length?tbl(["발생일","협력사","품번 · 품명","현상","상태"],miss.map(x=>`<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${esc(x.defect||"")}</td><td>${esc(STAT_T[x.status||"new"]||"")}</td></tr>`)):`<div class="empty">모두 대장에 있어요.</div>`)+
+  sec("메일엔 있는데 Y: 수입검사 불량 대장에 없는 건",miss.length,`품번이 같고 날짜가 ±30일 안인 대장 행이 없으면 여기 나와요. <b>Y: 대장(기구수입검사현황 › 부적합리스트) 마지막 기록일은 ${esc(yLast())}</b>이라, 그 뒤에 난 건은 '입력 전'으로 따로 표시해요. 대장 등록은 담당자가 직접 해 주세요.`,
+    miss.length?tbl(["발생일","협력사","품번 · 품명","현상","대장"],miss.map(x=>`<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${esc(x.defect||"")}</td><td>${yRegCell(x)}</td></tr>`)):`<div class="empty">모두 대장에 있어요.</div>`)+
   sec("최근 45일 Y: 수입검사 불량 대장",recent.length,"메일 대장에 같은 건이 있으면 ✓ 표시돼요.",
     recent.length?tbl(["발견일","협력사","품번 · 품명","유형","공정","내용 → 조치","메일"],recent.map(r=>{ const m=iqcForReg(r); return `<tr ${m[0]?`data-def="${esc(m[0].id)}" data-kind="iqc"`:""}><td class="num">${esc(dshort(r.d))}</td><td>${esc(r.sup)}</td><td><div class="code">${esc(r.pn)}</div><div class="note">${esc(r.nm)}</div></td><td>${esc(r.t)}</td><td>${esc(r.p)}</td><td>${esc(r.det)}${r.act?`<div class="note">→ ${esc(r.act)}</div>`:""}</td><td>${m.length?'<span class="ok-mark">✓</span>':'<span class="no-mark">–</span>'}</td></tr>`; })):`<div class="empty">최근 45일 기록이 없어요.</div>`)+
   sec("최종검사 issue 반복 S/N",rep.length,"같은 장비 S/N에서 최종검사 부적합이 2번 이상 난 건이에요.",
