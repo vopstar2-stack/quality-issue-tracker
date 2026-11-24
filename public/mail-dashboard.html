@@ -131,6 +131,21 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .rsteps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
 .rsteps i.on{background:var(--accent)}
 .ysec{font-size:14px;margin:20px 0 6px;display:flex;gap:8px;align-items:baseline}
+/* 품질회의 */
+.qhead{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 16px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
+.qhead .big{font-size:17px;font-weight:600}
+.qhead .big .code{font-size:15px}
+.qgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+@media (max-width:860px){.qgrid{grid-template-columns:1fr}}
+.qgrid div{background:var(--soft);border-radius:8px;padding:7px 10px;font-size:13px;min-width:0;overflow-wrap:anywhere}
+.qgrid b{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.qsteps{display:flex;gap:3px;width:120px}
+.qsteps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+.qsteps i.on{background:var(--accent)}
+.qasks{margin:8px 0;padding:0;list-style:none}
+.qasks li{font-size:13px;padding:3px 0}
+.qasks .ok{color:var(--green);font-weight:600} .qasks .wait{color:var(--red);font-weight:600}
+.issue.grey .ititle::before{background:var(--line-strong)}
 .ibody p{margin:10px 0}
 .thread{margin:8px 0 0;padding:0;list-style:none;border-left:2px solid var(--line)}
 .thread li{padding:4px 0 6px 12px;position:relative}
@@ -257,6 +272,7 @@ dialog textarea{min-height:200px;resize:vertical}
     <a href="#field" data-v="field">필드 불량<span class="cnt" id="c-field">0</span></a>
     <a href="#trace" data-v="trace">추적 (S/N·부품)<span class="cnt" id="c-trace">0</span></a>
     <a href="#ylink" data-v="ylink">Y: 대장 대조<span class="cnt" id="c-ylink">0</span></a>
+    <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
   </nav>
 
   <div class="filters" id="filters">
@@ -274,6 +290,7 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-field" hidden></section>
   <section id="v-trace" hidden></section>
   <section id="v-ylink" hidden></section>
+  <section id="v-qmeet" hidden></section>
   <section id="v-log" class="log" hidden></section>
 </main>
 
@@ -317,7 +334,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
 const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
-const S = {y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+const S = {qm:[], qmMeet:[], qmode:"next", qstage:"", y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
 let db=null, mcp=null, sample=null;
 const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
 const hasData = () => !!db || (WEB && !S.loadErr);
@@ -381,11 +398,12 @@ function render(){
   $("#c-field").textContent=S.field.filter(x=>x.status!=="closed").length;
   VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
   $("#filters").hidden = S.view==="log";
-  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink";
+  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet";
   $("#c-ylink").textContent=yMissing().length;
+  $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
   $("#projChips").hidden = $("#showClosed").hidden = $("#onlyNew").hidden = document.querySelector('[data-proj=""]').hidden = plain;
   $("#q").placeholder = plain ? "S/N, LOT, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
-  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
+  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
 }
 
 /* ---------- 답장 대기: 메일 정리 때 replyWait가 채워진 이슈 (나한테 온 질문·요청에 아직 내가 답장을 안 보냄) ---------- */
@@ -461,6 +479,67 @@ function renderYlink(){
     cal.length?tbl(["관리번호","계측기","모델","최근 교정","차기 교정"],cal.map(r=>`<tr><td class="code">${esc(r.no)}</td><td>${esc(r.nm)}</td><td>${esc(r.mdl)}</td><td class="num">${esc(r.last)}</td><td>${dueTxt(r.next)}</td></tr>`)):`<div class="empty">60일 안에 만료되는 계측기가 없어요.</div>`)+
   sec("rayqc 이슈 트래커 진행 중",rq.length,"",
     rq.length?tbl(["발생일","제목","S/N","국가","상태"],rq.map(r=>`<tr><td class="num">${esc(dshort(r.d))}</td><td><a href="https://rayqc.vercel.app/issues/${esc(r.id)}" target="_blank" rel="noopener" style="color:var(--accent)">${esc(r.ti)}</a></td><td class="code">${esc(r.sn)}</td><td>${esc(r.co)}</td><td>${esc(r.st)}</td></tr>`)):`<div class="empty">진행 중인 이슈가 없어요.</div>`);
+}
+
+/* ---------- 품질회의: [품질회의 상정]·[안건 업데이트]·회의록 메일을 안건 하나에 카드 하나로 ---------- */
+const QST=["상정","원인분석","대책","검증","종결"];
+const QST_T={"상정":"상정","원인분석":"원인 분석","대책":"대책","검증":"검증","종결":"종결"};
+function setQm(list){ S.qmMeet=((list.find(d=>d.id==="_meetings")||{}).meetings||[]).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date))); S.qm=list.filter(d=>d.id&&d.id[0]!=="_"); }
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+// 품질회의는 월·목 10시. 오늘이 월·목이고 10시 전이면 오늘이 다음 회의.
+function qmNext(){ const d=new Date(); const before10=d.getHours()<10; for(let k=0;k<8;k++){ const x=new Date(d); x.setDate(d.getDate()+k); const w=x.getDay(); if((w===1||w===4)&&(k>0||before10)) return ymd(x); } return ""; }
+function qmLast(){ const t=ymd(new Date()); const m=S.qmMeet.find(x=>x.date<=t); if(m) return m.date; const d=new Date(); for(let k=0;k<8;k++){ const x=new Date(d); x.setDate(d.getDate()-k); const w=x.getDay(); if((w===1||w===4)&&(k>0||d.getHours()>=10)) return ymd(x); } return ""; }
+const qmSns = a => String(a.sn||"").toUpperCase().split(/[,\s/]+/).filter(s=>s.length>=5);
+const qmField = a => { const ss=qmSns(a); return ss.length ? S.field.filter(x=>ss.includes(String(x.sn||"").toUpperCase())) : []; };
+const qmOpenAsks = a => (a.asksMine||[]).filter(x=>!x.done);
+const qmChanged = (a,since) => (a.raisedAt||"")>since || (a.lastAt||"")>since;
+function qmCard(a, since){
+  const k=Math.max(0,QST.indexOf(a.stage||"상정")); const closed=a.stage==="종결";
+  const oa=qmOpenAsks(a); const color = closed?"grey":oa.length?"red":(a.stage==="상정"?"yellow":"");
+  const isNew=(a.raisedAt||"")>since, upd=!isNew&&(a.lastAt||"")>since;
+  const ev=(a.events||[]).slice().sort((x,y)=>String(x.at).localeCompare(String(y.at)));
+  const ol=mid=>mid?`<a href="https://outlook.office365.com/owa/?ItemID=${encodeURIComponent(mid)}&exvsurl=1&viewmodel=ReadMessageItem" target="_blank" rel="noopener">Outlook에서 열기</a>`:"";
+  const fl=qmField(a);
+  return `<details class="issue ${color}" data-id="${esc(a.id)}" ${S.openIds.has(a.id)?"open":""}>
+    <summary>
+      <div class="ititle">${esc(a.title)}</div>
+      <div class="imeta">${isNew?'<span class="pill p-new">새 안건</span>':upd?'<span class="pill p-yellow">진행 소식</span>':""}${oa.length?`<span class="pill p-red">우리 팀 요청 ${oa.length}</span>`:""}<span class="pill ${closed?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span></div>
+      <div class="imeta"><span class="qsteps" title="${esc(QST.join(" → "))}">${QST.map((_,j)=>`<i class="${j<=k?"on":""}"></i>`).join("")}</span>${a.product?`<span>${esc(a.product)}</span>`:""}${a.sn?`<span class="code">${esc(a.sn)}</span>`:""}${a.site?`<span>${esc(a.site)}</span>`:""}<span>상정 ${esc(dshort(a.raisedAt))} ${esc(a.raisedBy||"")}${a.raisedTeam?" · "+esc(a.raisedTeam):""}</span>${a.lastAt?`<span>최근 ${esc(dshort(a.lastAt))}</span>`:""}</div>
+      ${a.lastWhat?`<div class="inext"><b>최근</b> ${esc(a.lastWhat)}</div>`:""}
+    </summary>
+    <div class="ibody">
+      <div class="qgrid"><div><b>현상</b>${esc(a.symptom||"–")}</div><div><b>원인</b>${esc(a.cause||"아직 확인 전")}</div><div><b>대책·조치</b>${esc(a.action||"아직 없음")}</div></div>
+      ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map(x=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
+      ${fl.length?`<div class="rel"><span class="note">필드 불량 대장</span>${fl.map(x=>`<button class="tchip" data-def="${esc(x.id)}" data-kind="field">${esc(x.sn)} · ${esc(dshort(x.date))}</button>`).join("")}</div>`:""}
+      ${(a.meetings||[]).length?`<p class="note">회의에서 다룬 날: ${a.meetings.map(d=>esc(dshort(d))).join(", ")}</p>`:""}
+      <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${ol(e.mid)}</li>`).join("")}</ul>
+      <div class="actions editonly"><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
+    </div>
+  </details>`;
+}
+function renderQm(){
+  const el=$("#v-qmeet");
+  if(!S.qm.length){ el.innerHTML=`<div class="empty">아직 정리된 품질회의 안건이 없어요. 메일 정리 때 [품질회의 상정]·[안건 업데이트]·회의록 메일을 모아요.</div>`; return; }
+  const q=S.q.trim().toLowerCase();
+  const hit=a=>!q||[a.title,a.sn,a.partSn,a.site,a.product,a.symptom,a.cause,a.action,a.raisedBy,a.lastWhat,(a.events||[]).map(e=>e.by+" "+e.what).join(" ")].join(" ").toLowerCase().includes(q);
+  const last=qmLast(), next=qmNext();
+  const open=S.qm.filter(a=>a.stage!=="종결");
+  const chg=S.qm.filter(a=>qmChanged(a,last));
+  const asks=S.qm.flatMap(a=>(a.asksMine||[]).map(x=>({...x,a})));
+  const oAsks=asks.filter(x=>!x.done);
+  const modes=`<div class="tmodes"><button class="chip" data-qmode="next" aria-pressed="${S.qmode==="next"}">다음 회의 준비 <b>${chg.length}</b></button><button class="chip" data-qmode="all" aria-pressed="${S.qmode==="all"}">전체 안건</button><button class="chip" data-qmode="mine" aria-pressed="${S.qmode==="mine"}">우리 팀 요청 <b>${oAsks.length}</b></button></div>`;
+  const head=`<div class="qhead"><div><div class="note">다음 품질회의</div><div class="big">${esc(dshort(next))} (${["일","월","화","수","목","금","토"][new Date(next+"T00:00").getDay()]}) 10:00</div></div><div><div class="note">지난 회의</div><div class="big">${esc(dshort(last))}</div></div><div><div class="note">그 뒤 새 안건 · 진행 소식</div><div class="big">${S.qm.filter(a=>(a.raisedAt||"")>last).length} · ${chg.filter(a=>(a.raisedAt||"")<=last).length}</div></div><div><div class="note">진행 중 안건</div><div class="big">${open.length}</div></div></div>`;
+  if(S.qmode==="mine"){
+    const rows=asks.filter(x=>hit(x.a)||(q&&String(x.what).toLowerCase().includes(q))).sort((x,y)=>(x.done-y.done)||String(y.at).localeCompare(String(x.at)));
+    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}</td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
+    return;
+  }
+  const cnt=s=>S.qm.filter(a=>(a.stage||"상정")===s).length;
+  const stg=S.qmode==="all"?`<div class="dbar">${QST.map(s=>`<button class="chip" data-qstage="${s}" aria-pressed="${S.qstage===s}">${QST_T[s]} ${cnt(s)}</button>`).join("")}</div>`:"";
+  let xs = S.qmode==="next" ? chg : S.qm.filter(a=>S.qstage?(a.stage||"상정")===S.qstage:a.stage!=="종결");
+  xs=xs.filter(hit).sort((a,b)=>(qmOpenAsks(b).length>0)-(qmOpenAsks(a).length>0) || String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt)));
+  const sub = S.qmode==="next" ? `<p class="note">지난 회의(${esc(dshort(last))}) 뒤에 새로 상정됐거나 진행 소식이 온 안건이에요. 회의 들어가기 전에 이것만 보시면 돼요.</p>` : `<p class="note">종결 안건은 '종결' 칩을 눌러 보세요.</p>`;
+  el.innerHTML=modes+head+stg+sub+(xs.length?`<div class="list">${xs.map(a=>qmCard(a,last)).join("")}</div>`:`<div class="empty">${S.qmode==="next"?"지난 회의 뒤로 바뀐 안건이 없어요.":"조건에 맞는 안건이 없어요."}</div>`);
 }
 
 function emptyMsg(){
@@ -783,7 +862,7 @@ ${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 �
 });
 
 /* ---------- routing & filters ---------- */
-const VIEWS=["issues","signal","asks","iqc","field","trace","ylink","log"];
+const VIEWS=["issues","signal","asks","iqc","field","trace","ylink","qmeet","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
@@ -794,6 +873,8 @@ document.addEventListener("click",e=>{
   if(t.tagName==="A") e.preventDefault();
   if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; if(t.dataset.rma) S.fmode="rma"; location.hash=t.dataset.go; route(); return; }
   if(t.dataset.fmode){ S.fmode=t.dataset.fmode; render(); return; }
+  if(t.dataset.qmode){ S.qmode=t.dataset.qmode; render(); return; }
+  if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
   if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"&&S.view!=="signal"){ location.hash="issues"; } render(); return; }
   if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
   if(t.hasAttribute("data-proj")&&t.classList.contains("chip")){ S.proj=t.dataset.proj; render(); return; }
@@ -816,6 +897,9 @@ function openIssue(id){
     clearTimeout(openIssue.t); openIssue.t=setTimeout(()=>{ S.focusId=null; el.classList.remove("focus"); },2500); });
 }
 // 사용자가 펼치고 접은 카드는 다시 그려도 그대로 둔다.
+// 품질회의 안건 단계는 손으로 고칠 수 있다 (stageManual이면 메일 정리가 덮어쓰지 않는다).
+document.addEventListener("change",async e=>{ const s=e.target.closest("select[data-qmset]"); if(!s) return;
+  if(await patch("qmeet/"+s.dataset.qmset,{stage:s.value,stageManual:true,closedAt:s.value==="종결"?new Date().toISOString().slice(0,10):""})) toast("단계를 바꿨어요"); });
 document.addEventListener("toggle",e=>{ const d=e.target; if(d.classList&&d.classList.contains("issue")&&d.dataset.id){ d.open?S.openIds.add(d.dataset.id):S.openIds.delete(d.dataset.id); } },true);
 
 /* ---------- actions ---------- */
@@ -890,7 +974,7 @@ $("#aSave").addEventListener("click",async()=>{
 /* ---------- data ---------- */
 async function loadWeb(){
   try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
-    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{});
+    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]);
     S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
     S.loadErr=false;
   }catch(e){ S.loadErr=true; }
@@ -923,6 +1007,7 @@ async function boot(){
     db.collection("iqc").onSnapshot(s=>{ S.iqc=conv(s); render(); },err);
     db.collection("field").onSnapshot(s=>{ S.field=conv(s); render(); },err);
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
+    db.collection("qmeet").onSnapshot(s=>{ setQm(conv(s)); render(); },()=>{});
     db.collection("ylink").onSnapshot(s=>{ const o={}; s.docs.forEach(d=>{ o[d.id]=d.data(); }); setY(o); render(); },()=>{});
     db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
   }
