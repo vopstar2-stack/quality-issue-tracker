@@ -172,6 +172,7 @@ table.tt{border-collapse:collapse;width:100%;font-size:13px}
 .tt tr[data-key]{cursor:pointer}
 .tt tr[data-key]:hover td{background:var(--soft)}
 .code{font-family:var(--f-mono);font-size:12.5px;font-weight:500;overflow-wrap:anywhere}
+.code.sn1{white-space:nowrap;overflow-wrap:normal}
 .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
 .grp{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;box-shadow:var(--shadow)}
 .grp .tbl-wrap{box-shadow:none}
@@ -667,10 +668,15 @@ function renderDef(k){
   const rep=x=>{ const n=defRepeat(k,x); return n>=2?` <span class="pill p-red">반복 ${n}</span>`:""; };
   const head = k==="iqc"
     ? `<tr><th>발생일</th><th>협력사</th><th>품번 · 품명</th><th>S/N · LOT</th><th>현상</th><th>처리</th><th>원인</th><th>대책</th><th title="Y: 수입검사 불량 대장 등록 여부 (품번·날짜 ±30일)">Y: 대장</th><th>상태</th></tr>`
-    : `<tr><th>발생일</th><th>현장</th><th>모델</th><th>S/N</th><th>현상 · 에러</th><th>원인</th><th>대책</th><th>상태</th></tr>`;
+    : `<tr><th>발생일</th><th>국가 · 고객</th><th>모델 · 부품</th><th>장비 S/N</th><th>현상</th><th>RMA</th><th>원인</th><th>대책</th><th>상태</th></tr>`;
+  // 필드 불량: 수입검사 탭처럼 셀마다 굵은 대표값 + 회색 보조줄
+  const siteCell=x=>{ const s=String(x.site||""), i=s.indexOf(" / "); return i<0?esc(s):`${esc(s.slice(0,i))}<div class="note">${esc(s.slice(i+3))}</div>`; };
+  const modelCell=x=>`${esc(x.model||"")}${has(x.partNo)||has(x.partName)?`<div class="note">${has(x.partNo)?`<span class="code">${esc(x.partNo)}</span> `:""}${esc(x.partName||"")}</div>`:""}`;
+  const fSnCell=x=>!snOk("field",x)?'<span class="pill p-red">S/N 없음</span>':has(x.sn)?`<div class="code sn1">${esc(x.sn)}</div>${has(x.partSn)?`<div class="note">부품 <span class="code sn1">${esc(x.partSn)}</span></div>`:""}`:has(x.partSn)?`<div class="note">부품 <span class="code sn1">${esc(x.partSn)}</span></div>`:`<span class="note">${esc(x.noSnReason)}</span>`;
+  const rmaCell=x=>{ const g=rmaStage(x); if(!g) return '<span class="no-mark">–</span>'; return `<span class="pill ${g==="완료"?"p-done":rmaStale(x)?"p-red":"p-yellow"}">${esc(g)}</span>${has(x.rma)?`<div class="note">${esc(String(x.rma).slice(0,24))}</div>`:""}`; };
   const row = x => k==="iqc"
     ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${yRegCell(x)}</td><td>${st(x)}</td></tr>`
-    : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.site||"")}</td><td>${esc(x.model||"")}</td><td>${snCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="code">${esc(x.errorCode)}</span>`:""}${rep(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
+    : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}</td><td>${siteCell(x)}</td><td>${modelCell(x)}</td><td>${fSnCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="note">(에러 <span class="code">${esc(x.errorCode)}</span>)</span>`:""}${rep(x)}${has(x.defectType)?`<div class="note">${esc(x.defectType)}</div>`:""}</td><td>${rmaCell(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
   el.innerHTML = bar + (xs.length?`<div class="tbl-wrap"><table class="tt"><thead>${head}</thead><tbody>${xs.map(row).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 항목이 없어요.</div>`);
 }
 
