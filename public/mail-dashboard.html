@@ -287,9 +287,7 @@ dialog textarea{min-height:200px;resize:vertical}
     <a href="#asks" data-v="asks" title="부탁 트래커">부탁<span class="cnt" id="c-asks">0</span></a>
     <a href="#iqc" data-v="iqc" title="수입검사 불량">수입검사<span class="cnt" id="c-iqc">0</span></a>
     <a href="#field" data-v="field" title="필드 불량">필드<span class="cnt" id="c-field">0</span></a>
-    <a href="#trace" data-v="trace" title="추적 (S/N·부품)">추적<span class="cnt" id="c-trace">0</span></a>
-    <a href="#ylink" data-v="ylink" title="Y: 대장 대조">Y: 대장<span class="cnt" id="c-ylink">0</span></a>
-    <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
+    <a href="#trace" data-v="trace" title="추적 (S/N·부품)">추적<span class="cnt" id="c-trace">0</span></a>    <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
   </nav>
 
   <div class="filters" id="filters">
@@ -418,7 +416,6 @@ function render(){
   VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
   $("#filters").hidden = S.view==="log";
   const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet";
-  $("#c-ylink").textContent=yMissing().length;
   $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
   $("#projChips").hidden = $("#showClosed").hidden = $("#onlyNew").hidden = document.querySelector('[data-proj=""]').hidden = plain;
   $("#q").placeholder = plain ? "S/N, LOT, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
@@ -428,7 +425,7 @@ function render(){
 // 브리핑 한 줄을 "제목(굵게) + 설명(회색)"으로 나눈다: 앞쪽 ":" 또는 " — " 를 기준으로.
 // 브리핑 항목 → 바로 갈 곳. 메일 정리가 itemIds[i]에 이슈 id를 적어 두면 그걸 쓰고,
 // 없으면(예전 브리핑) 항목 글의 S/N·품번 코드와 단어로 가장 잘 맞는 이슈를 찾는다.
-const BRIEF_TAB=[[/^불량 대장|^추적/,"field"],[/품질회의/,"qmeet"],[/^Y: |Y: 수입검사|계측기/,"ylink"],[/^부탁|지연된 부탁/,"asks"]];
+const BRIEF_TAB=[[/^불량 대장|^추적/,"field"],[/품질회의/,"qmeet"],[/^부탁|지연된 부탁/,"asks"]];
 function briefTarget(t,id){
   if(id&&S.issues.some(i=>i.id===id)) return {issue:id};
   // 요약 줄(불량 대장·추적·품질회의 등)은 제목만 보고 탭으로 보낸다.
@@ -922,7 +919,8 @@ ${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 �
 });
 
 /* ---------- routing & filters ---------- */
-const VIEWS=["issues","signal","asks","iqc","field","trace","ylink","qmeet","log"];
+// Y: 대장 대조 탭은 2026-11-24 사용자 요청으로 뺐다 (renderYlink 코드와 수입검사 표의 'Y: 대장' 열은 남아 있음).
+const VIEWS=["issues","signal","asks","iqc","field","trace","qmeet","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
