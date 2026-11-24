@@ -734,7 +734,6 @@ function traceDetail(){
     ${lot.length?`<div class="note" style="margin-top:6px">같은 LOT</div><div class="rel">${lot.map(chip).join("")}</div>`:""}
     ${sib.length?`<div class="note" style="margin-top:6px">같은 품번의 다른 S/N</div><div class="rel">${sib.map(chip).join("")}</div>`:""}
     <ul class="tl">${evs.map(e=>`<li class="${EVC[e.type]??""}"><span class="d">${esc(e.at?String(e.at).slice(0,10):"")}</span><span class="ty">${esc(e.type||"")}</span> ${esc(e.text||"")}${e.issueId&&byId(e.issueId)?` <a href="#issues" data-act="goto" data-id="${esc(e.issueId)}" style="font-size:12px;color:var(--accent)">이슈</a>`:""}${e.mid?` <a href="${esc("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(e.mid)+"&exvsurl=1&viewmodel=ReadMessageItem")}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent)">메일</a>`:""}</li>`).join("")||'<li class="note">이력 없음</li>'}</ul>
-    ${yTraceBlock(t)}
     ${iss.length?`<div class="note" style="margin-top:6px">관련 이슈</div><div class="rel">${iss.map(i=>`<button class="tchip" data-act="goto" data-id="${esc(i.id)}" style="font-family:var(--f-body)">${esc(i.title)}</button>`).join("")}</div>`:""}
   </div>`;
 }
@@ -803,7 +802,7 @@ function renderDef(k){
   const snCell=x=>{ const codes = k==="iqc" ? [...splitSn(x.sns), ...(has(x.lot)?["LOT "+x.lot]:[])] : [x.sn,x.partSn].filter(has); return snOk(k,x) ? (codes.length?`<div class="code">${esc(codes.slice(0,3).join(", "))}${codes.length>3?" 외 "+(codes.length-3):""}</div>`:`<span class="note">${esc(x.noSnReason)}</span>`) : '<span class="pill p-red">S/N 없음</span>'; };
   const rep=x=>{ const n=defRepeat(k,x); return n>=2?` <span class="pill p-red">반복 ${n}</span>`:""; };
   const head = k==="iqc"
-    ? `<tr><th>발생일</th><th>협력사</th><th>품번 · 품명</th><th>S/N · LOT</th><th>현상</th><th>처리</th><th>원인</th><th>대책</th><th title="Y: 수입검사 불량 대장 등록 여부 (품번·날짜 ±30일)">Y: 대장</th><th>상태</th></tr>`
+    ? `<tr><th>발생일</th><th>협력사</th><th>품번 · 품명</th><th>S/N · LOT</th><th>현상</th><th>처리</th><th>원인</th><th>대책</th><th>상태</th></tr>`
     : `<tr><th>발생일</th><th>국가 · 고객</th><th>모델 · 부품</th><th>장비 S/N</th><th>현상</th><th>RMA</th><th>원인</th><th>대책</th><th>상태</th></tr>`;
   // 필드 불량: 수입검사 탭처럼 셀마다 굵은 대표값 + 회색 보조줄
   const siteCell=x=>{ const s=String(x.site||""), i=s.indexOf(" / "); return i<0?esc(s):`${esc(s.slice(0,i))}<div class="note">${esc(s.slice(i+3))}</div>`; };
@@ -811,7 +810,7 @@ function renderDef(k){
   const fSnCell=x=>!snOk("field",x)?'<span class="pill p-red">S/N 없음</span>':has(x.sn)?`<div class="code sn1">${esc(x.sn)}</div>${has(x.partSn)?`<div class="note">부품</div><div class="note code sn1">${esc(x.partSn)}</div>`:""}`:has(x.partSn)?`<div class="note">부품</div><div class="note code sn1">${esc(x.partSn)}</div>`:`<span class="note">${esc(x.noSnReason)}</span>`;
   const rmaCell=x=>{ const g=rmaStage(x); if(!g) return '<span class="no-mark">–</span>'; return `<span class="pill ${g==="완료"?"p-done":rmaStale(x)?"p-red":"p-yellow"}" style="white-space:nowrap" title="${esc(x.rma||"")}">${esc(g)}${rmaStale(x)?" 정체":""}</span>`; };
   const row = x => k==="iqc"
-    ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${yRegCell(x)}</td><td>${st(x)}</td></tr>`
+    ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`
     : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}</td><td>${siteCell(x)}</td><td>${modelCell(x)}</td><td>${fSnCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="note">(에러 <span class="code">${esc(x.errorCode)}</span>)</span>`:""}${rep(x)}${has(x.defectType)?`<div class="note">${esc(x.defectType)}</div>`:""}</td><td>${rmaCell(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
   el.innerHTML = bar + (xs.length?`<div class="tbl-wrap"><table class="tt"><thead>${head}</thead><tbody>${xs.map(row).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 항목이 없어요.</div>`);
 }
@@ -919,7 +918,7 @@ ${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 �
 });
 
 /* ---------- routing & filters ---------- */
-// Y: 대장 대조 탭은 2026-11-24 사용자 요청으로 뺐다 (renderYlink 코드와 수입검사 표의 'Y: 대장' 열은 남아 있음).
+// Y: 드라이브 연결은 2026-11-24 사용자 요청으로 전부 뺐다 (탭·수입검사 'Y: 대장' 열·추적 상세·DB 읽기). renderYlink 등 함수는 쓰이지 않음.
 const VIEWS=["issues","signal","asks","iqc","field","trace","qmeet","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
@@ -1075,7 +1074,6 @@ async function boot(){
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
     db.collection("thumbs").onSnapshot(s=>{ setThumbs(conv(s)); render(); },()=>{});
     db.collection("qmeet").onSnapshot(s=>{ setQm(conv(s)); render(); },()=>{});
-    db.collection("ylink").onSnapshot(s=>{ const o={}; s.docs.forEach(d=>{ o[d.id]=d.data(); }); setY(o); render(); },()=>{});
     db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
   }
   window.claude?.use("mcp").then(m=>{ mcp=m; }).catch(()=>{});
