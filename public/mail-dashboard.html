@@ -444,7 +444,7 @@ function renderYlink(){
   const q=S.q.trim().toLowerCase(); const hit=o=>!q||Object.values(o).join(" ").toLowerCase().includes(q);
   const miss=yMissing().filter(x=>defMatch("iqc",x,q));
   const recent=y.regIqc.filter(r=>dgap(r.d,new Date().toISOString())<=45).filter(hit);
-  const cnt={}; y.finalIss.forEach(r=>{ if(r.sn) cnt[r.sn]=(cnt[r.sn]||0)+1; });
+  const cnt={}; y.finalIss.forEach(r=>{ if(/[A-Z0-9]{5,}/.test(r.sn||"")) cnt[r.sn]=(cnt[r.sn]||0)+1; });
   const rep=Object.entries(cnt).filter(([,n])=>n>=2).sort((a,b)=>b[1]-a[1]).map(([sn,n])=>({sn,n,rows:finBySn(sn)})).filter(g=>!q||g.rows.some(hit));
   const cal=y.calib.filter(hit), rq=y.rayqc.filter(r=>!/완료|종결|close/i.test(r.st)).filter(hit);
   const tbl=(h,rows)=>`<div class="tbl-wrap"><table class="tt"><thead><tr>${h.map(x=>`<th>${x}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`;
