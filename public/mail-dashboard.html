@@ -431,20 +431,21 @@ function render(){
 const BRIEF_TAB=[[/^불량 대장|^추적/,"field"],[/품질회의/,"qmeet"],[/^Y: |Y: 수입검사|계측기/,"ylink"],[/^부탁|지연된 부탁/,"asks"]];
 function briefTarget(t,id){
   if(id&&S.issues.some(i=>i.id===id)) return {issue:id};
+  // 요약 줄(불량 대장·추적·품질회의 등)은 제목만 보고 탭으로 보낸다.
+  const ttl=t.split(/:| — /)[0];
+  for(const [re,v] of BRIEF_TAB) if(re.test(ttl)) return {tab:v};
   const up=t.toUpperCase();
   const codes=[...new Set((up.match(/[A-Z]{1,5}[A-Z0-9]*-?[0-9][A-Z0-9-]{3,}/g)||[]).filter(c=>/\d{3}/.test(c)))];
   const words=[...new Set((t.match(/[가-힣A-Za-z]{2,}/g)||[]).filter(w=>!/^(신규|갱신|추가|확인|회신|요청|진행|완료|불량|이슈|메일|건)$/.test(w)))];
   let best=null, bs=0;
   S.issues.forEach(i=>{
     const hay=[i.title,i.summary,(i.mails||[]).map(m=>m.subject).join(" ")].join(" ");
-    const H=hay.toUpperCase(), T=String(i.title||"");
+    const H=hay.toUpperCase(), T=String(i.title||"").toUpperCase()+" "+String(i.id||"").toUpperCase();
     let s=codes.reduce((a,c)=>a+(H.includes(c)?5:0),0);
-    s+=words.reduce((a,w)=>a+(T.includes(w)?1:0),0);
+    s+=words.reduce((a,w)=>a+(T.includes(w.toUpperCase())?2:H.includes(w.toUpperCase())?1:0),0);
     if(i.status==="closed") s-=1;
     if(s>bs||(s===bs&&best&&String(i.updatedAt)>String(best.updatedAt))){ if(s>0){ best=i; bs=s; } }
   });
-  const head=t.slice(0,40);
-  for(const [re,v] of BRIEF_TAB) if(re.test(head)&&!(best&&bs>=5)) return {tab:v};
   return best&&bs>=3 ? {issue:best.id} : null;
 }
 function briefItem(t,id){
