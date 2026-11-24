@@ -144,6 +144,7 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .qsteps i.on{background:var(--accent)}
 .qasks{margin:8px 0;padding:0;list-style:none}
 .qasks li{font-size:13px;padding:3px 0}
+.qbtn{padding:1px 8px;font-size:11.5px;margin-left:4px}
 .qasks .ok{color:var(--green);font-weight:600} .qasks .wait{color:var(--red);font-weight:600}
 .issue.grey .ititle::before{background:var(--line-strong)}
 .ibody p{margin:10px 0}
@@ -509,11 +510,11 @@ function qmCard(a, since){
     </summary>
     <div class="ibody">
       <div class="qgrid"><div><b>현상</b>${esc(a.symptom||"–")}</div><div><b>원인</b>${esc(a.cause||"아직 확인 전")}</div><div><b>대책·조치</b>${esc(a.action||"아직 없음")}</div></div>
-      ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map(x=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
+      ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map((x,j)=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <button class="qbtn editonly" data-act="qask" data-id="${esc(a.id)}" data-i="${j}">${x.done?"대기로 되돌리기":"완료 처리"}</button> <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
       ${fl.length?`<div class="rel"><span class="note">필드 불량 대장</span>${fl.map(x=>`<button class="tchip" data-def="${esc(x.id)}" data-kind="field">${esc(x.sn)} · ${esc(dshort(x.date))}</button>`).join("")}</div>`:""}
       ${(a.meetings||[]).length?`<p class="note">회의에서 다룬 날: ${a.meetings.map(d=>esc(dshort(d))).join(", ")}</p>`:""}
       <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${ol(e.mid)}</li>`).join("")}</ul>
-      <div class="actions editonly"><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
+      <div class="actions editonly"><button data-act="qclose" data-id="${esc(a.id)}" class="${closed?"":"primary"}">${closed?"다시 열기":"종결 처리"}</button><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
     </div>
   </details>`;
 }
@@ -530,8 +531,9 @@ function renderQm(){
   const modes=`<div class="tmodes"><button class="chip" data-qmode="next" aria-pressed="${S.qmode==="next"}">다음 회의 준비 <b>${chg.length}</b></button><button class="chip" data-qmode="all" aria-pressed="${S.qmode==="all"}">전체 안건</button><button class="chip" data-qmode="mine" aria-pressed="${S.qmode==="mine"}">우리 팀 요청 <b>${oAsks.length}</b></button></div>`;
   const head=`<div class="qhead"><div><div class="note">다음 품질회의</div><div class="big">${esc(dshort(next))} (${["일","월","화","수","목","금","토"][new Date(next+"T00:00").getDay()]}) 10:00</div></div><div><div class="note">지난 회의</div><div class="big">${esc(dshort(last))}</div></div><div><div class="note">그 뒤 새 안건 · 진행 소식</div><div class="big">${S.qm.filter(a=>(a.raisedAt||"")>last).length} · ${chg.filter(a=>(a.raisedAt||"")<=last).length}</div></div><div><div class="note">진행 중 안건</div><div class="big">${open.length}</div></div></div>`;
   if(S.qmode==="mine"){
+    const asks=S.qm.flatMap(a=>(a.asksMine||[]).map((x,j)=>({...x,a,j})));
     const rows=asks.filter(x=>hit(x.a)||(q&&String(x.what).toLowerCase().includes(q))).sort((x,y)=>(x.done-y.done)||String(y.at).localeCompare(String(x.at)));
-    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}</td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
+    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}<div class="editonly" style="margin-top:4px"><button class="qbtn" data-act="qask" data-id="${esc(x.a.id)}" data-i="${x.j}">${x.done?"되돌리기":"완료 처리"}</button></div></td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
     return;
   }
   const cnt=s=>S.qm.filter(a=>(a.stage||"상정")===s).length;
@@ -912,6 +914,13 @@ async function handle(act,t){
   const id=t.dataset.id;
   if(act==="close"||act==="reopen"){ if(await patch("issues/"+id,{status:act==="close"?"closed":"open"})) toast(act==="close"?"완료로 옮겼어요":"다시 열었어요"); return; }
   if(act==="lv"){ await patch("issues/"+id,{level:t.dataset.lv}); return; }
+  // 품질회의: 종결/다시 열기, 우리 팀 요청 완료/대기 — 손으로 바꾼 것은 메일 정리가 덮어쓰지 않는다(stageManual, doneManual).
+  if(act==="qclose"){ const a=S.qm.find(x=>x.id===id); if(!a) return; const close=a.stage!=="종결";
+    const stage = close ? "종결" : (a.stageBefore && a.stageBefore!=="종결" ? a.stageBefore : "대책");
+    if(await patch("qmeet/"+id,{stage, stageManual:true, stageBefore: close ? (a.stage||"상정") : "", closedAt: close?new Date().toISOString().slice(0,10):""})) toast(close?"종결로 옮겼어요":"다시 열었어요"); return; }
+  if(act==="qask"){ const a=S.qm.find(x=>x.id===id); if(!a) return; const j=Number(t.dataset.i);
+    const list=(a.asksMine||[]).map((x,k)=>k===j?{...x,done:!x.done,doneManual:true,doneAt:!x.done?new Date().toISOString().slice(0,10):""}:x);
+    if(await patch("qmeet/"+id,{asksMine:list})) toast(list[j].done?"완료로 표시했어요":"대기로 되돌렸어요"); return; }
   if(act==="goto"){ openIssue(id); return; }
   if(act==="defnew"){ const k=t.dataset.kind; const i=id&&byId(id); const x={date:new Date().toISOString().slice(0,10),status:"new"};
     if(i){ x.issueId=i.id; x[k==="iqc"?"defect":"symptom"]=i.summary||i.title; x.mails=(i.mails||[]).slice(-5).map(m=>({mid:m.mid,from:m.from,at:m.at,subject:m.subject})); }
