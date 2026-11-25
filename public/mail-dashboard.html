@@ -426,7 +426,7 @@ function renderHits(){
 }
 function openQm(id){ const a=S.qm.find(x=>x.id===id); if(!a) return;
   S.qmode="all"; S.qstage=a.stage==="종결"?"종결":""; S.openIds.add(id); S.view="qmeet"; if(location.hash!=="#qmeet") history.pushState(null,"","#qmeet"); render();
-  requestAnimationFrame(()=>{ const el=document.querySelector(`#v-qmeet .issue[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start",behavior:"smooth"}); }); }
+  scrollToCard(`#v-qmeet .issue[data-id="${CSS.escape(id)}"]`); }
 
 /* ---------- render ---------- */
 function render(){
@@ -979,7 +979,7 @@ document.addEventListener("click",e=>{
   const bt=e.target.closest("[data-btab]"); if(bt){ location.hash=bt.dataset.btab; return; }
   const hr=e.target.closest("#hits .hr"); if(hr){
     if(hr.dataset.qopen){ openQm(hr.dataset.qopen); return; }
-    if(hr.dataset.act==="trace"){ S.tsel=hr.dataset.id; S.tmode="serial"; S.view="trace"; if(location.hash!=="#trace") history.pushState(null,"","#trace"); render(); return; }
+    if(hr.dataset.act==="trace"){ S.tsel=hr.dataset.id; S.tmode="serial"; S.view="trace"; if(location.hash!=="#trace") history.pushState(null,"","#trace"); render(); scrollToCard(`#v-trace tr[data-key="${CSS.escape(hr.dataset.id)}"]`); return; }
     if(hr.dataset.go){ location.hash=hr.dataset.go; return; }
   }
   const t=e.target.closest("button,[data-open],a[data-act]"); if(!t) return;
@@ -1004,10 +1004,15 @@ function openIssue(id){
   // location.hash를 바꾸면 hashchange → 다시 그리기가 한 번 더 일어나 카드가 닫히고 위치가 틀어진다. 주소만 바꾸고 이벤트는 안 낸다.
   if(location.hash!=="#issues") history.pushState(null,"","#issues");
   render();
-  requestAnimationFrame(()=>{ const el=document.querySelector(`.issue[data-id="${CSS.escape(id)}"]`); if(!el) return;
-    const head=document.querySelector("header.top"); const off=(head?head.getBoundingClientRect().bottom:0)+12;
-    window.scrollTo({top:Math.max(0,el.getBoundingClientRect().top+window.scrollY-off),behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
-    clearTimeout(openIssue.t); openIssue.t=setTimeout(()=>{ S.focusId=null; el.classList.remove("focus"); },2500); });
+  scrollToCard(`#v-issues .issue[data-id="${CSS.escape(id)}"]`);
+  clearTimeout(openIssue.t); openIssue.t=setTimeout(()=>{ S.focusId=null; const el=document.querySelector(".issue.focus"); if(el) el.classList.remove("focus"); },2500);
+}
+// 카드 제목이 고정 머리줄 바로 아래에 오도록 즉시 이동하고, 도중에 화면이 다시 그려져 밀리면(데이터 갱신·사진 로딩) 두 번 더 맞춘다.
+function scrollToCard(sel){
+  const go=()=>{ const el=document.querySelector(sel); if(!el) return;
+    const head=document.querySelector("header.top"); const off=(head?head.getBoundingClientRect().bottom:0)+16;
+    const d=el.getBoundingClientRect().top-off; if(Math.abs(d)>6) window.scrollTo({top:Math.max(0,window.scrollY+d),behavior:"auto"}); };
+  requestAnimationFrame(go); setTimeout(go,350); setTimeout(go,900);
 }
 // 사용자가 펼치고 접은 카드는 다시 그려도 그대로 둔다.
 // 품질회의 안건 단계는 손으로 고칠 수 있다 (stageManual이면 메일 정리가 덮어쓰지 않는다).
