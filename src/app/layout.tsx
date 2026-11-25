@@ -92,7 +92,7 @@ export default function RootLayout({
         {/* 넓은 화면(lg 이상): 왼쪽 = 클비서 메일 상황판(고정, 메뉴를 눌러도 그대로), 오른쪽 = 메뉴로 바뀌는 화면 (2026-11-25).
             레이아웃은 페이지를 옮겨도 다시 그려지지 않아서 왼쪽 상황판은 보던 자리 그대로 남는다. */}
         <div className="flex flex-1">
-          <aside className="sticky top-[25px] hidden h-[calc(100dvh-25px)] w-[60%] shrink-0 border-r border-neutral-200 lg:block dark:border-neutral-800">
+          <aside className="sticky top-[25px] hidden h-[calc(100dvh-25px)] w-1/2 shrink-0 border-r border-neutral-200 lg:block dark:border-neutral-800">
             <iframe title="메일 상황판" src="/mail-dashboard.html" className="block h-full w-full border-0 bg-white" />
           </aside>
           <main className="flex min-w-0 flex-1 flex-col">{children}</main>
