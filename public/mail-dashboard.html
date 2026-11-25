@@ -99,6 +99,21 @@ button[disabled]{opacity:.5;cursor:default}
 .brief .allread{font-size:13px;color:var(--muted)}
 .log .entry.read .rd{font-size:11.5px;color:var(--muted);margin-left:6px}
 .log .entry.unread{border-color:var(--accent)}
+/* 내 확인 기록: 불량품을 직접 검증·확인한 내용. 메일에서 뽑은 내용과 섞이지 않게 초록 띠로 구분 */
+.mynotes{margin:10px 0;border:1px solid var(--line);border-left:3px solid var(--green);border-radius:8px;padding:6px 10px;background:var(--panel)}
+.mynotes .mnh{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--green)}
+.mynotes .mnh .spacer{flex:1}
+.mynotes .mnh button,.addnote{font-size:12px;padding:2px 9px;border-radius:12px}
+.addnote{margin:8px 0 0;border-color:var(--green);color:var(--green)}
+.mnote{border-top:1px solid var(--line);padding:6px 0;cursor:pointer}
+.mnote:hover .mt{color:var(--accent)}
+.mnote .mm{font-size:11.5px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mnote .mt{font-weight:600;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
+.mnote .mr{font-size:12.5px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}
+.mnote .thumbs img{height:60px}
+.v-ok{background:var(--green-bg);color:var(--green)} .v-ing{background:var(--amber-bg);color:var(--amber)} .v-no{background:var(--grey-bg);color:var(--grey)}
+#dlgNote textarea{min-height:76px}
+#nPrev{margin-top:6px} #nPrev .ph{position:relative;display:inline-block} #nPrev .ph button{position:absolute;top:-6px;right:-6px;padding:0 6px;font-size:12px;border-radius:10px}
 .brief .bmore{margin-top:4px;font-size:12px;color:var(--accent);background:none;border:0;padding:2px 0;cursor:pointer}
 /* KPI: 한 줄짜리 작은 칩 */
 .kpis{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -367,6 +382,18 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-log" class="log" hidden></section>
 </main>
 
+<dialog id="dlgNote"><form method="dialog" id="fNote">
+  <h3 id="nTitle">내 확인 기록</h3>
+  <div class="drow"><label>확인한 날<input id="nDate" type="date"></label><label>판정<select id="nVerdict"><option value="">선택</option><option>원인 확정</option><option>원인 아님</option><option>재현 안 됨</option><option>진행 중</option><option>처리 완료</option><option>참고</option></select></label></div>
+  <label>대상 S/N · 품번 · LOT (쉼표로 여러 개, 모르면 "미확인")<input id="nCodes" placeholder="예: 2697A04, RA82685101"></label>
+  <label>무엇을 확인했나<textarea id="nWhat" placeholder="예: 회수 탱크 분해 — 벨로우즈 체결부·토크 확인"></textarea></label>
+  <label>결과 · 판단 근거<textarea id="nResult" placeholder="예: 벨로우즈 가로 2mm 수축, 체결 토크 정상 → 벨로우즈 소재 문제로 판단"></textarea></label>
+  <label>사진 (3장까지 · 낮은 화질로 줄여 저장)<input id="nFile" type="file" accept="image/*" multiple></label>
+  <div class="thumbs" id="nPrev"></div>
+  <div class="dfoot"><span class="msg" id="nMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="nSave">저장</button></div>
+  <p class="note" id="nWhere" style="margin:0"></p>
+</form></dialog>
+
 <dialog id="dlgImg" class="imgdlg"><form method="dialog"><img id="imgBig" alt=""><div class="dfoot"><span class="note" id="imgCap"></span><button value="close">닫기</button></div></form></dialog>
 
 <dialog id="dlgDraft"><form method="dialog" id="fDraft">
@@ -398,6 +425,7 @@ dialog textarea{min-height:200px;resize:vertical}
 <dialog id="dlgDef"><form method="dialog" id="fDef">
   <h3 id="fTitle">불량 등록</h3>
   <div class="dgrid" id="fGrid"></div>
+  <div id="fNotes"></div>
   <div class="dfoot" style="justify-content:flex-start"><button type="button" id="fGen" class="editonly">Claude로 원인·대책 초안</button><span class="msg" id="fGenMsg"></span></div>
   <div class="dfoot"><span class="msg" id="fMsg"></span><button value="cancel">닫기</button><button type="button" class="primary editonly" id="fSave">저장</button></div>
   <p class="note" style="margin:0">S/N(또는 LOT)을 넣고 저장하면 추적 탭의 해당 S/N 이력에도 자동으로 남아요.</p>
@@ -464,6 +492,8 @@ function renderHits(){
       x=>`<div class="hr" data-def="${esc(x.id)}" data-kind="iqc"><span class="pill p-white">수입</span><span class="t">${markQ([x.partNo,x.partName].filter(Boolean).join(" "),q)}</span><span class="d">${esc(dshort(x.date))}</span><span class="s">${esc([x.supplier,x.defect].filter(Boolean).join(" — "))}</span></div>`],
     ["품질회의", S.qm.filter(a=>hitTest(hayQm(a),q)).sort((a,b)=>String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt))),
       a=>`<div class="hr" data-qopen="${esc(a.id)}"><span class="pill ${a.stage==="종결"?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span><span class="t">${markQ(a.title,q)}</span><span class="d">${esc(dshort(a.lastAt||a.raisedAt))}</span><span class="s">${esc(a.lastWhat||"")}</span></div>`],
+    ["내 확인 기록", sortNotes(allNotes().filter(n=>hitTest([n.what,n.result,n.verdict,(n.codes||[]).join(" "),n.part,n.maker].join(" "),q))),
+      n=>`<div class="hr" data-hnote="${esc(n.id)}"><span class="pill ${VERD[n.verdict]||"v-no"}">${esc(n.verdict||"기록")}</span><span class="t">${markQ(n.what||"",q)}</span><span class="d">${esc(dshort(n.date))}</span><span class="s">${esc((n.codes||[]).join(", "))}${n.result?" — "+esc(String(n.result).slice(0,80)):""}</span></div>`],
     ["부탁", S.asks.filter(a=>hitTest(hayAsk(a),q)),
       a=>`<div class="hr" data-go="asks"><span class="pill p-white">${esc((STAGES.find(s=>s[0]===a.stage)||[,""])[1])}</span><span class="t">${markQ(a.what,q)}</span><span class="d">${esc(a.to||"")}</span></div>`]
   ].filter(g=>g[1].length);
@@ -852,6 +882,122 @@ document.addEventListener("click",e=>{ const im=e.target.closest("img[data-zoom]
   const t=(S.thumbs[im.dataset.zoom]||[])[Number(im.dataset.k)]; if(!t) return;
   $("#imgBig").src=t.d; $("#imgCap").textContent=/^mcp-|blob-/.test(t.n||"")?"메일 첨부 사진":(t.n||""); $("#dlgImg").showModal(); },true);
 
+/* ---------- 내 확인 기록 (notes) ----------
+   불량품을 직접 검증·확인한 내용. S/N·품번·LOT(codes)에 붙여 두고, 이슈 카드·불량 대장·추적 상세·전체 검색에서
+   그 S/N이 나오는 곳마다 같이 보여 준다. 메일 정리는 이 기록을 고치지 않고, '원인 확정'은 [추정]보다 우선한다.
+   저장: claude.ai 화면 → notes/{id} 바로 저장 / 폰(웹 사본) → /api/mail-dashboard/notes → 다음 메일 정리 때 notes로 합쳐짐.
+   사진: 브라우저에서 약 800px 낮은 화질 JPEG로 줄여 기록 안에 같이 저장(장당 70KB 이하, 3장까지).
+   source "history" = 불량품 히스토리 대장(옛 Book 8)에서 옮겨 온 예전 기록 — 읽기 전용. */
+S.notes=[]; S.webNotes=[];
+const NOTES_API = WEB ? WEB.replace(/\/?$/,"") + "/notes" : "";
+const ncode = s => String(s||"").toUpperCase().replace(/\s+/g,"");
+const VERD = {"원인 확정":"v-ok","처리 완료":"v-ok","진행 중":"v-ing","원인 아님":"v-no","재현 안 됨":"v-no","참고":"v-no"};
+// 웹 사본은 용량 때문에 사진을 뺀 기록이 올 수 있어, 폰 서버에 사진이 있는 쪽을 우선한다.
+function allNotes(){ const w=new Map(S.webNotes.map(n=>[n.id,n]));
+  const xs=S.notes.map(n=>{ const p=w.get(n.id); return p&&!(n.photos||[]).length&&(p.photos||[]).length?Object.assign({},n,{photos:p.photos}):n; });
+  const ids=new Set(S.notes.map(n=>n.id)); return xs.concat(S.webNotes.filter(n=>!ids.has(n.id))); }
+const sortNotes = xs => xs.sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt)));
+function notesFor({issueId="",codes=[],defId=""}){
+  const cs=new Set(codes.map(ncode).filter(c=>c&&c!=="미확인"));
+  return sortNotes(allNotes().filter(n=>(issueId&&n.issueId===issueId)||(defId&&n.defId===defId)||(n.codes||[]).some(c=>cs.has(ncode(c)))));
+}
+function codesForIssue(i){
+  const c=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)).map(t=>t.code);
+  S.field.filter(x=>x.issueId===i.id).forEach(x=>c.push(...codesForDef("field",x)));
+  S.iqc.filter(x=>x.issueId===i.id).forEach(x=>c.push(...codesForDef("iqc",x)));
+  return [...new Set(c.filter(has))];
+}
+function codesForDef(k,x){ return k==="iqc" ? [...splitSn(x.sns), ...(has(x.lot)?[x.lot]:[])] : [x.sn,x.partSn,x.newPartSn].filter(has); }
+const traceByCode = c => S.trace.find(t=>ncode(t.code)===ncode(c));
+function noteItem(n){
+  const src = n.source==="history" ? `히스토리 대장 #${esc(n.histNo||"")}` : n.source==="phone" ? "폰에서 기록" : "";
+  return `<div class="mnote" data-note="${esc(n.id)}" tabindex="0">
+    <div class="mm"><span class="code">${esc(dshort(n.date))}</span>${n.verdict?`<span class="pill ${VERD[n.verdict]||"v-no"}">${esc(n.verdict)}</span>`:""}${(n.codes||[]).map(c=>{ const t=traceByCode(c); return t?`<button class="tchip" data-act="trace" data-id="${esc(t.id)}">${esc(c)}</button>`:`<span class="code">${esc(c)}</span>`; }).join("")}${src?`<span>${src}</span>`:""}</div>
+    <div class="mt">${esc(n.what||"")}</div>${n.result?`<div class="mr">${esc(n.result)}</div>`:""}
+    ${(n.photos||[]).length?`<div class="thumbs">${n.photos.map((p,k)=>`<img src="${esc(p.d)}" alt="확인 사진" loading="lazy" data-nzoom="${esc(n.id)}" data-k="${k}" title="크게 보기">`).join("")}</div>`:""}
+    ${(n.photoCount||0)>(n.photos||[]).length?`<div class="note">사진 ${n.photoCount}장은 PC 상황판에서 볼 수 있어요</div>`:""}
+  </div>`;
+}
+// ctx: 새 기록을 열 때 미리 채울 대상 {issueId, codes, defKind, defId}
+function ctxAttr(ctx){ return ` data-addnote="1" data-issue="${esc(ctx.issueId||"")}" data-codes="${esc((ctx.codes||[]).join(", "))}" data-dk="${esc(ctx.defKind||"")}" data-did="${esc(ctx.defId||"")}"`; }
+function notesBlock(list,ctx){
+  if(!list.length) return `<button type="button" class="addnote"${ctxAttr(ctx)}>+ 내 확인 기록</button>`;
+  return `<div class="mynotes"><div class="mnh">내 확인 기록 ${list.length}<span class="spacer"></span><button type="button"${ctxAttr(ctx)}>+ 기록</button></div>${list.map(noteItem).join("")}</div>`;
+}
+let ncur=null;
+function openNote(ctx,n){
+  const ro = !!n && (n.source==="history" || !db);   // 폰(웹)에서는 새 기록 추가만, 고치기는 PC에서. 예전 대장 기록은 읽기 전용
+  ncur={id:n?n.id:null, n, ctx:ctx||{}, photos:n?(n.photos||[]).slice():[], ro};
+  $("#nTitle").textContent = n ? (ro?"내 확인 기록 (보기)":"내 확인 기록 고치기") : "내 확인 기록 추가";
+  $("#nDate").value = n?n.date:new Date().toLocaleDateString("sv-SE");
+  $("#nVerdict").value = n?(n.verdict||""):"";
+  $("#nCodes").value = n?(n.codes||[]).join(", "):(ctx.codes||[]).join(", ");
+  $("#nWhat").value = n?(n.what||""):""; $("#nResult").value = n?(n.result||""):"";
+  ["#nDate","#nVerdict","#nCodes","#nWhat","#nResult","#nFile"].forEach(s=>{ $(s).disabled=ro; });
+  $("#nSave").hidden=ro; $("#nMsg").textContent=""; $("#nFile").value="";
+  const iss = (n?n.issueId:ctx.issueId); const is=iss&&byId(iss);
+  $("#nWhere").textContent = [is?"이슈: "+is.title:"", (n?n.defId:ctx.defId)?"불량 대장 "+(n?n.defId:ctx.defId):"", ro&&n&&n.source==="history"?"불량품 히스토리 대장에서 옮겨 온 예전 기록이에요.":"", !db&&!ro?"폰에서 저장하면 다음 메일 정리 때 PC 상황판에도 합쳐져요.":""].filter(Boolean).join(" · ");
+  renderNPrev(); $("#dlgNote").showModal();
+}
+function renderNPrev(){ $("#nPrev").innerHTML=ncur.photos.map((p,k)=>`<span class="ph"><img src="${esc(p.d)}" alt="사진 ${k+1}">${ncur.ro?"":`<button type="button" data-nrm="${k}" aria-label="사진 빼기">✕</button>`}</span>`).join(""); }
+// 사진을 낮은 화질로 줄인다: 긴 변 800px, JPEG 품질을 낮춰 가며 70KB 이하로.
+async function shrink(file){
+  const url=URL.createObjectURL(file);
+  try{
+    const img=await new Promise((ok,no)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=no; im.src=url; });
+    let side=800, d="", w=0, h=0;
+    for(let tries=0; tries<6; tries++){
+      const r=Math.min(1, side/Math.max(img.naturalWidth,img.naturalHeight)); w=Math.round(img.naturalWidth*r); h=Math.round(img.naturalHeight*r);
+      const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+      let q=0.6; d=c.toDataURL("image/jpeg",q);
+      while(d.length>70000 && q>0.3){ q-=0.1; d=c.toDataURL("image/jpeg",q); }
+      if(d.length<=70000) break; side=Math.round(side*0.8);
+    }
+    return {w,h,d};
+  } finally { URL.revokeObjectURL(url); }
+}
+$("#nFile").addEventListener("change",async e=>{
+  const files=[...e.target.files]; const room=3-ncur.photos.length;
+  if(files.length>room) toast(`사진은 3장까지예요. 앞의 ${Math.max(room,0)}장만 넣었어요.`);
+  $("#nMsg").className="msg"; $("#nMsg").textContent="사진 줄이는 중…";
+  for(const f of files.slice(0,Math.max(room,0))){ try{ ncur.photos.push(await shrink(f)); }catch(_){ toast("사진 하나를 읽지 못했어요"); } }
+  $("#nMsg").textContent=""; e.target.value=""; renderNPrev();
+});
+$("#nPrev").addEventListener("click",e=>{ const b=e.target.closest("[data-nrm]"); if(!b) return; ncur.photos.splice(Number(b.dataset.nrm),1); renderNPrev(); });
+$("#nSave").addEventListener("click",async()=>{
+  const msg=$("#nMsg"); const what=$("#nWhat").value.trim(), date=$("#nDate").value;
+  const codes=[...new Set($("#nCodes").value.split(/[,\n;]+/).map(s=>s.trim()).filter(Boolean))];
+  if(!date){ msg.className="msg err"; msg.textContent="확인한 날을 넣어 주세요."; return; }
+  if(!what){ msg.className="msg err"; msg.textContent="무엇을 확인했는지 적어 주세요."; return; }
+  if(!codes.length){ msg.className="msg err"; msg.textContent="대상 S/N·품번·LOT을 적어 주세요. 모르면 \"미확인\"이라고 적으세요."; return; }
+  const now=new Date().toISOString(), c=ncur.ctx, o=ncur.n;
+  const id = ncur.id || ("n-"+date.replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,8));
+  const data={id,date,codes,what,result:$("#nResult").value.trim(),verdict:$("#nVerdict").value,photos:ncur.photos,
+    issueId:o?o.issueId||"":c.issueId||"", defKind:o?o.defKind||"":c.defKind||"", defId:o?o.defId||"":c.defId||"",
+    by:"김원수", source:o?o.source:(db?"pc":"phone"), createdAt:o?o.createdAt:now, updatedAt:now};
+  $("#nSave").disabled=true; msg.className="msg"; msg.textContent="저장하는 중…";
+  try{
+    if(db){ await db.doc("notes/"+id).set(data); }
+    else if(NOTES_API){ const r=await fetch(NOTES_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({note:data})});
+      const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||String(r.status)); S.webNotes=[data].concat(S.webNotes.filter(n=>n.id!==id)); }
+    else throw new Error("저장할 곳이 없어요");
+    $("#dlgNote").close(); toast("기록했어요"); render(); if($("#dlgDef").open&&dcur) fillDefNotes();
+  }catch(err){ msg.className="msg err"; msg.textContent="저장하지 못했어요: "+(err.message||err.code||"오류"); }
+  finally{ $("#nSave").disabled=false; }
+});
+document.addEventListener("click",e=>{
+  const a=e.target.closest("[data-addnote]"); if(a){ e.preventDefault(); e.stopPropagation();
+    openNote({issueId:a.dataset.issue, codes:splitSn(a.dataset.codes), defKind:a.dataset.dk, defId:a.dataset.did}, null); return; }
+  const z=e.target.closest("img[data-nzoom]"); if(z){ e.stopPropagation(); const n=allNotes().find(x=>x.id===z.dataset.nzoom); const p=n&&(n.photos||[])[Number(z.dataset.k)]; if(!p) return;
+    $("#imgBig").src=p.d; $("#imgCap").textContent=`${dshort(n.date)} ${n.what||""}`; $("#dlgImg").showModal(); return; }
+  const hn=e.target.closest("[data-hnote]"); if(hn){ e.stopPropagation(); const n=allNotes().find(x=>x.id===hn.dataset.hnote); if(n) openNote({},n); return; }
+  if(e.target.closest("button,a")) return;
+  const m=e.target.closest(".mnote[data-note]"); if(m){ e.stopPropagation(); const n=allNotes().find(x=>x.id===m.dataset.note); if(n) openNote({},n); }
+},true);
+function fillDefNotes(){ if(!dcur||!dcur.id){ $("#fNotes").innerHTML=""; return; } const x=Object.assign({},dcur.base);
+  const codes=codesForDef(dcur.k,x); $("#fNotes").innerHTML=notesBlock(notesFor({defId:dcur.id,codes}),{issueId:x.issueId,codes,defKind:dcur.k,defId:dcur.id}); }
+async function loadWebNotes(){ if(!NOTES_API) return; try{ const r=await fetch(NOTES_API,{cache:"no-store"}); if(r.ok){ const d=await r.json(); S.webNotes=(d.notes||[]).filter(n=>n&&n.id); } }catch(_){} }
+
 function issueCard(i, open){
   const lv=LV[i.level]||LV.white;
   const mails=(i.mails||[]).slice().sort((a,b)=>String(a.at).localeCompare(String(b.at)));
@@ -866,6 +1012,7 @@ function issueCard(i, open){
     <div class="ibody">
       ${i.summary?`<p>${esc(i.summary)}</p>`:""}
       ${(()=>{ const ts=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)); return ts.length?`<div class="rel" style="margin-top:8px"><span class="note">추적 대상</span>${ts.map(t=>`<button class="tchip ${t.status!=="closed"&&t.kind!=="part"?"bad":""}" data-act="trace" data-id="${esc(t.id)}">${esc(t.code)}</button>`).join("")}</div>`:""; })()}
+      ${(()=>{ const cs=codesForIssue(i); return notesBlock(notesFor({issueId:i.id,codes:cs}),{issueId:i.id,codes:cs.slice(0,6)}); })()}
       <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${thumbRow(m.mid)}${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
       <div class="actions">
         <button data-act="${i.status==="closed"?"reopen":"close"}" data-id="${esc(i.id)}">${i.status==="closed"?"다시 열기":"완료 처리"}</button>
@@ -983,6 +1130,7 @@ function traceDetail(){
     ${kids.length?`<div class="note" style="margin-top:6px">장착·교체 이력 부품</div><div class="rel">${kids.map(chip).join("")}</div>`:""}
     ${lot.length?`<div class="note" style="margin-top:6px">같은 LOT</div><div class="rel">${lot.map(chip).join("")}</div>`:""}
     ${sib.length?`<div class="note" style="margin-top:6px">같은 품번의 다른 S/N</div><div class="rel">${sib.map(chip).join("")}</div>`:""}
+    ${notesBlock(notesFor({codes:[t.code]}),{codes:[t.code],issueId:(t.issueIds||[])[0]||""})}
     <ul class="tl">${evs.map(e=>`<li class="${EVC[e.type]??""}"><span class="d">${esc(e.at?String(e.at).slice(0,10):"")}</span><span class="ty">${esc(e.type||"")}</span> ${esc(e.text||"")}${e.issueId&&byId(e.issueId)?` <a href="#issues" data-act="goto" data-id="${esc(e.issueId)}" style="font-size:12px;color:var(--accent)">이슈</a>`:""}${e.mid?` <a href="${esc("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(e.mid)+"&exvsurl=1&viewmodel=ReadMessageItem")}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent)">메일</a>`:""}</li>`).join("")||'<li class="note">이력 없음</li>'}</ul>
     ${iss.length?`<div class="note" style="margin-top:6px">관련 이슈</div><div class="rel">${iss.map(i=>`<button class="tchip" data-act="goto" data-id="${esc(i.id)}" style="font-family:var(--f-body)">${esc(i.title)}</button>`).join("")}</div>`:""}
   </div>`;
@@ -1084,6 +1232,7 @@ function openDef(k,x,isNew){
   $("#fGen").disabled=!sample||ro; $("#fSave").disabled=ro;
   if(!sample&&!ro) $("#fGenMsg").textContent="이 화면에서는 Claude 초안 쓰기를 쓸 수 없어요.";
   snCheck();
+  fillDefNotes();
   $("#dlgDef").showModal();
 }
 function formVals(){ const o={}; $("#fGrid").querySelectorAll("[name]").forEach(e=>{ o[e.name]= e.type==="number" ? (e.value===""?"":Number(e.value)) : e.value.trim(); }); return o; }
@@ -1322,7 +1471,8 @@ async function loadWeb(){
   try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
     S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]); setThumbs(d.thumbs||[]); S.sw=d.supwait||[];
     S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
-    await loadWebRead();
+    S.notes=d.notes||[];
+    await Promise.all([loadWebRead(), loadWebNotes()]);
     S.loadErr=false;
   }catch(e){ S.loadErr=true; }
   S.loaded=true; render();
@@ -1354,6 +1504,7 @@ async function boot(){
     db.collection("iqc").onSnapshot(s=>{ S.iqc=conv(s); render(); },err);
     db.collection("field").onSnapshot(s=>{ S.field=conv(s); render(); },err);
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
+    db.collection("notes").onSnapshot(s=>{ S.notes=conv(s); render(); if($("#dlgDef").open&&dcur) fillDefNotes(); },()=>{});
     db.collection("supwait").onSnapshot(s=>{ S.sw=conv(s); render(); },()=>{});
     db.collection("thumbs").onSnapshot(s=>{ setThumbs(conv(s)); render(); },()=>{});
     db.collection("qmeet").onSnapshot(s=>{ setQm(conv(s)); render(); },()=>{});

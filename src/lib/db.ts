@@ -118,6 +118,14 @@ async function ensureSchema(pool: Pool): Promise<void> {
       read_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
+    -- 메일 상황판 '내 확인 기록'을 폰(웹 사본)에서 쓴 것. 사진은 낮은 화질 JPEG data URI로
+    -- data 안에 같이 들어 있다. 사내 PC의 메일 정리가 읽어 claude.ai 상황판 DB(notes)로 옮긴다.
+    CREATE TABLE IF NOT EXISTS mail_notes (
+      id TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     -- 없앤 '내 할 일' 앱이 쓰던 테이블 정리 (2026-11-18)
     DROP TABLE IF EXISTS my_memos, my_item_state, push_subscriptions, app_status;
   `);
