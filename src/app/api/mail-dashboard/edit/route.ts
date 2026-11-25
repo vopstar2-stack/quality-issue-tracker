@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // 메일 상황판 웹 사본(폰)에서 누른 버튼 변경을 저장한다.
 // - 이슈 카드: 완료 처리 / 다시 열기 (status), 처리로 올리기 / 지켜봄으로 내리기 (level)
 // - 품질회의 안건: 종결 처리 / 다시 열기 / 단계 선택 (stage…), 우리 팀 요청 완료 처리 (asksMine)
-// - 내 확인 기록: 삭제 (deleted) — 불량품 히스토리 대장에서 옮긴 예전 기록(h-…)은 지울 수 없다
+// - 내 확인 기록: 고치기 (date, what, codes, photos) · 삭제 (deleted) — 불량품 히스토리 대장에서 옮긴 예전 기록(h-…)은 지울 수 없다
 // 웹 사본이 POST로 저장하고 GET으로 읽어 화면에 반영한다. 사내 PC의 메일 정리 예약 작업이 GET으로 읽어
 // claude.ai 상황판 DB에 옮긴 뒤, 업로드 토큰으로 DELETE해서 지운다.
 // 웹 상황판 자체가 공개(사용자 선택)라 POST에는 인증을 두지 않고, 바꿀 수 있는 필드와 값을 엄격히 제한한다.
@@ -24,7 +24,15 @@ function clean(coll: string, data: Patch): Patch | string {
   for (const [k, v] of Object.entries(data)) {
     if (coll === "notes") {
       if (k === "deleted" && v === true) out[k] = true;
-      else if (k === "deletedAt" && typeof v === "string" && v.length <= 40) out[k] = v;
+      else if ((k === "deletedAt" || k === "updatedAt") && typeof v === "string" && v.length <= 40) out[k] = v;
+      else if (k === "date" && typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) out[k] = v;
+      else if (k === "what" && typeof v === "string" && v.trim() && v.length <= 4000) out[k] = v.trim();
+      else if (k === "codes" && Array.isArray(v) && v.length <= 20 && v.every((c) => typeof c === "string" && c.length <= 60)) out[k] = v;
+      else if (
+        k === "photos" && Array.isArray(v) && v.length <= 3 &&
+        v.every((p) => p && typeof p === "object" && typeof (p as Patch).d === "string" &&
+          /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test((p as Patch).d as string) && ((p as Patch).d as string).length <= 200_000)
+      ) out[k] = v.map((p) => ({ w: Number((p as Patch).w) || 0, h: Number((p as Patch).h) || 0, d: (p as Patch).d }));
       else return `바꿀 수 없는 항목입니다: ${k}`;
     } else if (coll === "issues") {
       if (k === "status" && (v === "open" || v === "closed")) out[k] = v;
