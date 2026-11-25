@@ -44,3 +44,16 @@ export async function readLatestSnapshot(): Promise<Record<string, unknown> | nu
     return null;
   }
 }
+
+// 상황판 화면 코드(HTML). 사내 PC의 메일 정리가 데이터와 함께 매번 올려서,
+// 화면을 고쳐도 Vercel 재배포 없이 다음 정리 때 웹(폰)에 반영되게 한다 (2026-11-25 사용자 요청).
+export const MAIL_DASHBOARD_PAGE_PATHNAME = "mail-dashboard/page.html";
+export const MAIL_DASHBOARD_PAGE_MAX_BYTES = 3 * 1024 * 1024;
+
+export async function fetchLatestPageHtml(): Promise<string | null> {
+  const { blobs } = await list({ prefix: MAIL_DASHBOARD_PAGE_PATHNAME, limit: 1 });
+  const latest = blobs[0];
+  if (!latest) return null;
+  const res = await fetch(latest.url, { cache: "no-store" });
+  return res.ok ? await res.text() : null;
+}
