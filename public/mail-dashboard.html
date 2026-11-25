@@ -250,7 +250,10 @@ table.tt{border-collapse:collapse;width:100%;font-size:13px}
 .grp>summary::-webkit-details-marker{display:none}
 .grp .gt{font-weight:600}
 .grp .tbl-wrap{border:0;border-top:1px solid var(--line);border-radius:0 0 12px 12px}
-.detail{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px)}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;position:sticky;top:calc(env(safe-area-inset-top,0px) + 64px);max-height:calc(100vh - 84px);overflow:auto}
+/* 상세 칸이 목록 높이만큼 늘어나야 sticky가 아래로 따라온다 */
+.tgrid>div:last-child{align-self:stretch}
+@media (max-width:860px){.detail{position:static;max-height:none}}
 .detail h3{margin:0;font-family:var(--f-mono);font-size:16px;overflow-wrap:anywhere}
 .attrs{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:12.5px;margin:8px 0}
 .attrs dt{color:var(--muted)} .attrs dd{margin:0;overflow-wrap:anywhere}
@@ -1093,7 +1096,10 @@ const VIEWS=["issues","asks","iqc","field","trace","qmeet","sup","check","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
-  const tr=e.target.closest("tr[data-key]"); if(tr&&!e.target.closest("button")){ S.tsel=tr.dataset.key; render(); return; }
+  const tr=e.target.closest("tr[data-key]"); if(tr&&!e.target.closest("button")){ S.tsel=tr.dataset.key; render();
+    // 넓은 화면은 상세가 옆에서 따라오고, 좁은 화면(한 줄 배치)은 상세가 목록 아래라 그쪽으로 이동한다.
+    const d=document.querySelector("#v-trace .detail"); if(d){ if(d.scrollTop) d.scrollTop=0; if(innerWidth<=860) scrollToCard("#v-trace .detail"); }
+    return; }
   const ck=e.target.closest("tr[data-ckt]"); if(ck&&!e.target.closest("button")){ S.tsel=ck.dataset.ckt; S.tmode="serial"; S.view="trace"; history.pushState(null,"","#trace"); render(); scrollToCard(`#v-trace tr[data-key="${CSS.escape(ck.dataset.ckt)}"]`); return; }
   const dr=e.target.closest("[data-def]"); if(dr&&!e.target.closest("button:not([data-def])")){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
   const ds=e.target.closest("[data-dstat]"); if(ds){ S.dstat=ds.dataset.dstat; render(); return; }
