@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
-<!-- 클비서 상황판 웹 사본 · 만든 시각 2026-11-25 14:18 -->
+<!-- 클비서 상황판 웹 사본 · 만든 시각 2026-11-25 15:09 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="mail-dashboard-source" content="/api/mail-dashboard">
@@ -107,6 +107,13 @@ button[disabled]{opacity:.5;cursor:default}
 .mynotes .mnh button,.addnote{font-size:12px;padding:2px 9px;border-radius:12px}
 .addnote{margin:8px 0 0;border-color:var(--green);color:var(--green)}
 .mnote{border-top:1px solid var(--line);padding:6px 0;cursor:pointer}
+/* 기록 탭 (2026-11-25): 내 확인 기록만 모아 보기 */
+.nlist{display:flex;flex-direction:column;gap:14px}
+.tmodes .spacer{flex:1}
+.nmon h3{margin:0 0 6px;font-size:13px;color:var(--muted);font-weight:600}
+.nmon .mynotes{margin:0}
+.nlink{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px;font-size:12px}
+.nlink .tchip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mnote:hover .mt{color:var(--accent)}
 .mnote .mm{font-size:11.5px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .mnote .mt{font-weight:600;font-size:13.5px;line-height:1.45;overflow-wrap:anywhere}
@@ -153,7 +160,7 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .inext b{font-weight:600}
 .pill{display:inline-block;font-size:11px;font-weight:600;border-radius:4px;padding:1px 6px;white-space:nowrap}
 .p-red{background:var(--red-bg);color:var(--red)} .p-yellow{background:var(--amber-bg);color:var(--amber)} .p-white{background:var(--grey-bg);color:var(--grey)}
-.p-new{background:var(--accent);color:var(--accent-ink)} .p-proj{background:var(--soft);color:var(--muted)} .p-done{background:var(--green-bg);color:var(--green)}
+.p-new{background:var(--accent);color:var(--accent-ink)} .p-mine{background:transparent;color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)} .p-proj{background:var(--soft);color:var(--muted)} .p-done{background:var(--green-bg);color:var(--green)}
 .due{font-family:var(--f-mono)} .due.over{color:var(--red);font-weight:600}
 .ibody{padding:0 16px 14px;border-top:1px solid var(--line)}
 .inext{background:var(--soft);border-radius:7px;padding:5px 10px}
@@ -300,9 +307,15 @@ table.tt{border-collapse:collapse;width:100%;font-size:13px}
 .web .editonly{display:none!important}
 /* public web copy is read-only */
 .web .actions,.web [data-act="tclose"]{display:none!important}
+.web .ask .actions,.web .actions.webok{display:flex!important} /* 요청 카드 ◀ ▶ · 이슈 보기는 폰에서도 (2026-11-25) */
 /* modal */
 dialog{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);padding:0;width:min(640px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(10,16,22,.45)}
+/* 다른 탭에서 이슈·안건을 누르면 탭을 옮기지 않고 위에 띄운다 — 닫으면 보던 자리 그대로 (2026-11-25) */
+dialog.popdlg{width:min(780px,calc(100vw - 20px));max-height:88vh;overflow:auto;background:var(--bg)}
+.pophead{position:sticky;top:0;z-index:2;display:flex;gap:6px;align-items:center;padding:10px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.pophead .spacer{flex:1}
+#popBody{padding:10px}
 dialog form{padding:16px;display:flex;flex-direction:column;gap:10px}
 dialog h3{margin:0;font-size:15px}
 dialog label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
@@ -348,6 +361,7 @@ dialog textarea{min-height:200px;resize:vertical}
     <a href="#trace" data-v="trace" title="추적 (S/N·부품)">추적<span class="cnt" id="c-trace">0</span></a>    <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
     <a href="#sup" data-v="sup" title="협력사별 회신 대기·불량 추이">협력사<span class="cnt" id="c-sup">0</span></a>
     <a href="#check" data-v="check" title="자동으로 넣은 내용 중 사람이 확인해야 할 것">확인<span class="cnt" id="c-check">0</span></a>
+    <a href="#notes" data-v="notes" title="내 확인 기록만 모아 보기">기록<span class="cnt" id="c-notes">0</span></a>
   </nav>
 
   <div class="filters" id="filters">
@@ -367,6 +381,7 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-qmeet" hidden></section>
   <section id="v-sup" hidden></section>
   <section id="v-check" hidden></section>
+  <section id="v-notes" hidden></section>
   <section id="v-log" class="log" hidden></section>
 </main>
 
@@ -380,6 +395,7 @@ dialog textarea{min-height:200px;resize:vertical}
   <p class="note" id="nWhere" style="margin:0"></p>
 </form></dialog>
 
+<dialog id="dlgPop" class="popdlg" aria-label="자세히 보기"><div class="pophead"><span class="note" id="popKind"></span><span class="spacer"></span><button type="button" id="popTab">탭에서 보기</button><button type="button" id="popClose" class="primary">닫기</button></div><div id="popBody" class="list"></div></dialog>
 <dialog id="dlgImg" class="imgdlg"><form method="dialog"><img id="imgBig" alt=""><div class="dfoot"><span class="note" id="imgCap"></span><button value="close">닫기</button></div></form></dialog>
 
 <dialog id="dlgDraft"><form method="dialog" id="fDraft">
@@ -491,13 +507,26 @@ function renderHits(){
   el.hidden=false;
   el.innerHTML=`<h3>"${esc(S.q.trim())}" 전체 검색 <span class="note">${n}건</span></h3>`+(n?G.map(([t,xs,row])=>`<div class="hg"><b>${t} ${xs.length}</b>${xs.slice(0,12).map(row).join("")}${xs.length>12?`<div class="note">외 ${xs.length-12}건은 해당 탭에서 보세요</div>`:""}</div>`).join(""):`<div class="note">어디에서도 찾지 못했어요. 철자나 일부만 넣어 보세요.</div>`);
 }
-function openQm(id){ const a=S.qm.find(x=>x.id===id); if(!a) return;
+// 보던 탭을 떠나지 않고 이슈·안건을 띄워 보는 창. 닫거나 뒤로 가기를 누르면 원래 자리 그대로다.
+function showPop(kind,id){ S.pop={kind,id}; S.openIds.add(id); fillPop(); const d=$("#dlgPop"); if(!d.open){ d.showModal(); try{ history.pushState({pop:1},"",location.href); S.popPushed=true; }catch(_){} } d.scrollTop=0; }
+function fillPop(){ const d=$("#dlgPop"); if(!S.pop) return; const {kind,id}=S.pop; const st=d.scrollTop;
+  if(kind==="issue"){ const i=S.issues.find(x=>x.id===id); if(!i){ d.close(); return; } $("#popKind").textContent="이슈"; $("#popBody").innerHTML=issueCard(i,true); }
+  else { const a=S.qm.find(x=>x.id===id); if(!a){ d.close(); return; } $("#popKind").textContent="품질회의 안건"; $("#popBody").innerHTML=qmCard(a,qmLast()); }
+  d.scrollTop=st; }
+$("#dlgPop").addEventListener("close",()=>{ S.pop=null; $("#popBody").innerHTML=""; if(S.popPushed){ S.popPushed=false; if(history.state&&history.state.pop) history.back(); } });
+$("#dlgPop").addEventListener("click",e=>{ if(e.target.id==="dlgPop") e.target.close(); });   // 바깥(어두운 곳)을 누르면 닫기
+$("#popClose").addEventListener("click",()=>$("#dlgPop").close());
+$("#popTab").addEventListener("click",()=>{ const p=S.pop; S.popPushed=false; $("#dlgPop").close(); if(!p) return; p.kind==="issue"?openIssueTab(p.id):openQmTab(p.id); });
+window.addEventListener("popstate",()=>{ const d=$("#dlgPop"); if(d.open){ S.popPushed=false; d.close(); } });
+function openQm(id){ if(S.view!=="qmeet"){ showPop("qm",id); return; } openQmTab(id); }
+function openQmTab(id){ const a=S.qm.find(x=>x.id===id); if(!a) return;
   S.qmode="all"; S.qstage=a.stage==="종결"?"종결":""; S.openIds.add(id); S.view="qmeet"; if(location.hash!=="#qmeet") history.pushState(null,"","#qmeet"); render();
   scrollToCard(`#v-qmeet .issue[data-id="${CSS.escape(id)}"]`); }
 
 /* ---------- render ---------- */
 function render(){
   const m=S.meta||{};
+  if(S.pop) fillPop();
   // 메일 연결이 끊겨 자동 정리를 못 하고 있으면 맨 위에 빨간 경고를 띄운다(정리가 성공하면 connError가 지워진다).
   const ca=$("#connAlert");
   if(m.connError){ ca.hidden=false; ca.textContent=`⚠ 메일 연결 끊김 (${shortWhen(m.connError.at)}부터) — 메일 정리가 멈춰 있어요. Claude 앱 커넥터에서 Microsoft 365를 다시 연결해 주세요.`; }
@@ -528,13 +557,14 @@ function render(){
   $("#c-field").textContent=S.field.filter(x=>x.status!=="closed").length;
   VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
   $("#filters").hidden = S.view==="log";
-  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet"||S.view==="sup"||S.view==="check"||S.view==="asks";
+  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet"||S.view==="sup"||S.view==="check"||S.view==="asks"||S.view==="notes";
   $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
   $("#showClosed").hidden = $("#onlyNew").hidden = plain;
   $("#q").placeholder = "전체 검색 — S/N, 품번, LOT, 제목, 사람, 협력사…";
-  ({issues:renderIssues, asks:renderAsks, sup:renderSup, check:renderCheck, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
+  ({issues:renderIssues, asks:renderAsks, sup:renderSup, check:renderCheck, notes:renderNotes, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
   $("#c-sup").textContent=S.sw.filter(x=>x.status!=="done").length;
   $("#c-check").textContent=checkItems().length;
+  $("#c-notes").textContent=allNotes().length;
   renderHits();
 }
 
@@ -613,6 +643,10 @@ async function markRead(ids){
   }catch(e){ ids.forEach(id=>{ delete S.webRead[id]; }); render(); toast("읽음 저장을 못 했어요. 다시 눌러 주세요."); }
 }
 const READ_API = WEB ? WEB.replace(/\/?$/,"") + "/brief-read" : "";
+// 폰(웹 사본)에서 요청 카드를 ◀ ▶로 옮긴 기록 — 서버에 저장, 다음 메일 정리 때 상황판 DB(asks.stage)로 옮겨진다.
+const ASK_API = WEB ? WEB.replace(/\/?$/,"") + "/ask-stage" : "";
+function applyMoves(){ const m=S.webMoves||{}; S.asks.forEach(a=>{ const x=m[a.id]; if(x&&String(x.at)>String(a.movedAt||"")){ a.stage=x.stage; a.movedAt=x.at; } }); }
+async function loadWebMoves(){ if(!ASK_API) return; try{ const r=await fetch(ASK_API,{cache:"no-store"}); if(r.ok){ const d=await r.json(); S.webMoves=d.moves||{}; applyMoves(); } }catch(_){} }
 async function loadWebRead(){ if(!READ_API) return; try{ const r=await fetch(READ_API,{cache:"no-store"}); if(r.ok){ const d=await r.json(); S.webRead=Object.assign({},d.reads||{},S.webRead); } }catch(_){} }
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-read]"); if(b){ e.stopPropagation(); markRead([b.dataset.read]); return; }
@@ -640,7 +674,7 @@ function renderRma(q){
   if(!xs.length) return `<div class="empty">RMA가 걸린 필드 불량이 없어요. 필드 불량에 RMA 번호나 단계가 적히면 여기 모여요.</div>`;
   return `<div class="rma">${RMA_ST.map(([k,l],si)=>{ const col=xs.filter(x=>rmaStage(x)===k).sort((a,b)=>rmaSince(b)-rmaSince(a));
     return `<div class="col"><h3><span>${l}</span><span class="note">${col.length}</span></h3>${col.map(x=>`<div class="rcard ${rmaStale(x)?"stale":""}" data-def="${esc(x.id)}" data-kind="field" tabindex="0">
-      <span class="code">${esc(x.partSn||x.sn||"S/N 없음")}</span>
+      <span class="code">${esc(x.partSn||x.sn||"S/N 없음")}</span>${mineMark(notesFor({defId:x.id,codes:codesForDef("field",x)}))}
       <div class="m"><span>${esc(x.site||"")}</span><span>${esc(x.partName||x.model||"")}</span></div>
       <div class="m"><span>${esc((x.symptom||"").slice(0,40))}</span></div>
       <div class="m">${x.rma?`<span>${esc(String(x.rma).length>36?String(x.rma).slice(0,36)+"…":x.rma)}</span>`:""}<span class="age">${k==="완료"?"완료":"이 단계 "+rmaSince(x)+"일"}</span></div>
@@ -716,18 +750,18 @@ function qmCard(a, since){
   return `<details class="issue ${color}" data-id="${esc(a.id)}" ${S.openIds.has(a.id)?"open":""}>
     <summary>
       <div class="ititle">${esc(a.title)}</div>
-      <div class="imeta">${isNew?'<span class="pill p-new">새 안건</span>':upd?'<span class="pill p-yellow">진행 소식</span>':""}${oa.length?`<span class="pill p-red">우리 팀 요청 ${oa.length}</span>`:""}<span class="pill ${closed?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span></div>
+      <div class="imeta">${isNew?'<span class="pill p-new">새 안건</span>':upd?'<span class="pill p-yellow">진행 소식</span>':""}${oa.length?`<span class="pill p-red">우리 팀 요청 ${oa.length}</span>`:""}<span class="pill ${closed?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span>${mineMark(notesFor({qmId:a.id,codes:qmCodes(a)}))}</div>
       <div class="imeta"><span class="qsteps" title="${esc(QST.join(" → "))}">${QST.map((_,j)=>`<i class="${j<=k?"on":""}"></i>`).join("")}</span>${a.product?`<span>${esc(a.product)}</span>`:""}${a.sn?`<span class="code">${esc(a.sn)}</span>`:""}${a.site?`<span>${esc(a.site)}</span>`:""}<span>상정 ${esc(dshort(a.raisedAt))} ${esc(a.raisedBy||"")}${a.raisedTeam?" · "+esc(a.raisedTeam):""}</span>${a.lastAt?`<span>최근 ${esc(dshort(a.lastAt))}</span>`:""}</div>
       ${a.lastWhat?`<div class="inext"><b>최근</b> ${esc(a.lastWhat)}</div>`:""}
     </summary>
     <div class="ibody">
       <div class="qgrid"><div><b>현상</b>${esc(a.symptom||"–")}</div><div><b>원인</b>${esc(a.cause||"아직 확인 전")}</div><div><b>대책·조치</b>${esc(a.action||"아직 없음")}</div></div>
-      ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map((x,j)=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <button class="qbtn editonly" data-act="qask" data-id="${esc(a.id)}" data-i="${j}">${x.done?"대기로 되돌리기":"완료 처리"}</button> <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
+      ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map((x,j)=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <button class="qbtn" data-act="qask" data-id="${esc(a.id)}" data-i="${j}">${x.done?"대기로 되돌리기":"완료 처리"}</button> <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
       ${fl.length?`<div class="rel"><span class="note">필드 불량 대장</span>${fl.map(x=>`<button class="tchip" data-def="${esc(x.id)}" data-kind="field">${esc(x.sn)} · ${esc(dshort(x.date))}</button>`).join("")}</div>`:""}
-      ${(()=>{ const cs=[...new Set([...qmSns(a), ...(has(a.partSn)?splitSn(a.partSn):[])])]; return notesBlock(notesFor({qmId:a.id,codes:cs}),{qmId:a.id,codes:cs.slice(0,6)}); })()}
+      ${(()=>{ const cs=qmCodes(a); return notesBlock(notesFor({qmId:a.id,codes:cs}),{qmId:a.id,codes:cs.slice(0,6)}); })()}
       ${(a.meetings||[]).length?`<p class="note">회의에서 다룬 날: ${a.meetings.map(d=>esc(dshort(d))).join(", ")}</p>`:""}
       <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${thumbRow(e.mid)}${ol(e.mid)}</li>`).join("")}</ul>
-      <div class="actions editonly"><button data-act="qclose" data-id="${esc(a.id)}" class="${closed?"":"primary"}">${closed?"다시 열기":"종결 처리"}</button><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
+      <div class="actions webok"><button data-act="qclose" data-id="${esc(a.id)}" class="${closed?"":"primary"}">${closed?"다시 열기":"종결 처리"}</button><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
     </div>
   </details>`;
 }
@@ -758,14 +792,14 @@ function checkItems(){
     const tgt=k==="iqc"?[x.partNo,x.partName].filter(Boolean).join(" "):[x.sn,x.model].filter(Boolean).join(" · ");
     const sub=k==="iqc"?[x.supplier,x.defect].filter(Boolean).join(" — "):[x.site,x.symptom].filter(Boolean).join(" — ");
     if(!x.checkedAt && GUESS_F.some(f=>String(x[f]||"").includes("[추정]")))
-      out.push({why:"AI 추정 원인·대책",cls:"p-yellow",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:`<button class="qbtn" data-act="ckdef" data-kind="${k}" data-id="${esc(x.id)}">맞음</button>`,kind:k==="iqc"?"수입검사":"필드"});
+      out.push({why:"AI 추정 원인·대책",cls:"p-yellow",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:`<button class="qbtn" data-act="ckdef" data-kind="${k}" data-id="${esc(x.id)}">맞음</button>`,kind:k==="iqc"?"수입검사":"필드",mine:mineMark(notesFor({defId:x.id,codes:codesForDef(k,x)}))});
     if(!snOk(k,x))
-      out.push({why:"S/N·LOT 누락",cls:"p-red",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:"",kind:k==="iqc"?"수입검사":"필드"});
+      out.push({why:"S/N·LOT 누락",cls:"p-red",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:"",kind:k==="iqc"?"수입검사":"필드",mine:mineMark(notesFor({defId:x.id,codes:codesForDef(k,x)}))});
   }));
   S.trace.forEach(t=>{ if(t.status==="closed"||t.checkedAt) return;
     const txt=[t.note,(t.events||[]).map(e=>e.text).join(" ")].join(" ");
     if(/확인 필요|불일치|정정/.test(txt)){ const ev=(t.events||[]).filter(e=>/확인 필요|불일치|정정/.test(e.text)).pop();
-      out.push({why:"S/N 불일치·확인 필요",cls:"p-red",tgt:t.code,sub:t.note||(ev&&ev.text)||"",date:tLast(t),row:`data-ckt="${esc(t.id)}"`,btn:`<button class="qbtn" data-act="cktrace" data-id="${esc(t.id)}">확인 완료</button>`,kind:"추적"}); }
+      out.push({why:"S/N 불일치·확인 필요",cls:"p-red",tgt:t.code,sub:t.note||(ev&&ev.text)||"",date:tLast(t),row:`data-ckt="${esc(t.id)}"`,btn:`<button class="qbtn" data-act="cktrace" data-id="${esc(t.id)}">확인 완료</button>`,kind:"추적",mine:mineMark(notesFor({codes:[t.code]}))}); }
   });
   return out.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
 }
@@ -774,10 +808,32 @@ function checkedItems(){
   const out=[];
   ["iqc","field"].forEach(k=>S[k].forEach(x=>{ if(!x.checkedAt) return;
     const tgt=k==="iqc"?[x.partNo,x.partName].filter(Boolean).join(" "):[x.sn,x.model].filter(Boolean).join(" · ");
-    out.push({why:"AI 추정 → 맞음",tgt,sub:k==="iqc"?[x.supplier,x.defect].filter(Boolean).join(" — "):[x.site,x.symptom].filter(Boolean).join(" — "),at:x.checkedAt,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:`<button class="qbtn" data-act="unckdef" data-kind="${k}" data-id="${esc(x.id)}">되돌리기</button>`,kind:k==="iqc"?"수입검사":"필드"}); }));
+    out.push({why:"AI 추정 → 맞음",tgt,sub:k==="iqc"?[x.supplier,x.defect].filter(Boolean).join(" — "):[x.site,x.symptom].filter(Boolean).join(" — "),at:x.checkedAt,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:`<button class="qbtn" data-act="unckdef" data-kind="${k}" data-id="${esc(x.id)}">되돌리기</button>`,kind:k==="iqc"?"수입검사":"필드",mine:mineMark(notesFor({defId:x.id,codes:codesForDef(k,x)}))}); }));
   S.trace.forEach(t=>{ if(!t.checkedAt) return;
-    out.push({why:"S/N 확인 완료",tgt:t.code,sub:t.note||"",at:t.checkedAt,row:`data-ckt="${esc(t.id)}"`,btn:`<button class="qbtn" data-act="uncktrace" data-id="${esc(t.id)}">되돌리기</button>`,kind:"추적"}); });
+    out.push({why:"S/N 확인 완료",tgt:t.code,sub:t.note||"",at:t.checkedAt,row:`data-ckt="${esc(t.id)}"`,btn:`<button class="qbtn" data-act="uncktrace" data-id="${esc(t.id)}">되돌리기</button>`,kind:"추적",mine:mineMark(notesFor({codes:[t.code]}))}); });
   return out.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+}
+// 기록 탭: 내 확인 기록 전부를 월별로 (최근 순). 각 기록이 붙은 이슈·안건·불량 대장 건은 눌러서 바로 볼 수 있다.
+function noteLinks(n){
+  const out=[]; const i=n.issueId&&byId(n.issueId); const a=n.qmId&&S.qm.find(x=>x.id===n.qmId);
+  const k=n.defKind||(n.defId&&String(n.defId).startsWith("iqc")?"iqc":"field"); const d=n.defId&&(S[k]||[]).find(x=>x.id===n.defId);
+  if(i) out.push(`<button class="tchip" data-open="${esc(i.id)}" title="${esc(i.title)}">이슈 · ${esc(i.title)}</button>`);
+  if(a) out.push(`<button class="tchip" data-qopen="${esc(a.id)}" title="${esc(a.title)}">품질회의 · ${esc(a.title)}</button>`);
+  if(d) out.push(`<button class="tchip" data-def="${esc(d.id)}" data-kind="${k}">${k==="iqc"?"수입검사":"필드"} · ${esc(k==="iqc"?[d.partNo,d.defect].filter(Boolean).join(" "):[d.sn,d.symptom].filter(Boolean).join(" "))}</button>`);
+  return out.length?`<div class="nlink"><span class="note">붙은 곳</span>${out.join("")}</div>`:"";
+}
+function renderNotes(){
+  const el=$("#v-notes"); if(!S.loaded||!hasData()){ el.innerHTML=emptyMsg(); return; }
+  const all=sortNotes(allNotes().slice()); const mine=all.filter(n=>n.source!=="history"), old=all.filter(n=>n.source==="history");
+  const md=S.nmode||"all";
+  const modes=`<div class="tmodes"><button class="chip" data-nmode="all" aria-pressed="${md==="all"}">전체 <b>${all.length}</b></button><button class="chip" data-nmode="mine" aria-pressed="${md==="mine"}">새로 쓴 기록 <b>${mine.length}</b></button><button class="chip" data-nmode="old" aria-pressed="${md==="old"}">불량품 히스토리 대장 <b>${old.length}</b></button><span class="spacer"></span><button type="button" class="primary"${ctxAttr({})}>+ 새 기록</button></div>`;
+  let xs=md==="mine"?mine:md==="old"?old:all;
+  const raw=normQ(S.q.trim()); if(raw.length>=2){ const q={raw,c:compactQ(raw)};
+    xs=xs.filter(n=>{ const i=n.issueId&&byId(n.issueId), a=n.qmId&&S.qm.find(x=>x.id===n.qmId);
+      return hitTest([n.what,n.result,n.verdict,(n.codes||[]).join(" "),n.part,n.maker,i?i.title:"",a?a.title:""].join(" "),q); }); }
+  if(!xs.length){ el.innerHTML=modes+`<div class="empty">${raw.length>=2?"검색에 맞는 기록이 없어요.":"아직 기록이 없어요. 이슈·불량 대장·추적·품질회의 카드의 '+ 내 확인 기록'이나 위 '+ 새 기록'으로 남길 수 있어요."}</div>`; return; }
+  const by={}; xs.forEach(n=>{ const m=String(n.date||"").slice(0,7)||"날짜 없음"; (by[m]=by[m]||[]).push(n); });
+  el.innerHTML=modes+`<p class="note">내가 직접 확인한 내용만 모았어요. 기록을 누르면 고칠 수 있고, '붙은 곳'을 누르면 그 이슈·안건·대장 건이 창으로 열려요.</p><div class="nlist">${Object.keys(by).map(m=>`<div class="nmon"><h3>${esc(m.replace("-","년 "))}${m.includes("-")?"월":""} · ${by[m].length}건</h3><div class="mynotes">${by[m].map(n=>noteItem(n).replace(/<\/div>\s*$/,noteLinks(n)+"</div>")).join("")}</div></div>`).join("")}</div>`;
 }
 function renderCheck(){
   const el=$("#v-check"); if(!S.loaded||!hasData()){ el.innerHTML=emptyMsg(); return; }
@@ -785,13 +841,13 @@ function renderCheck(){
   const done=checkedItems().filter(qf);
   const modes=`<div class="tmodes"><button class="chip" data-cmode="todo" aria-pressed="${S.cmode!=="done"}">확인할 것 <b>${checkItems().length}</b></button><button class="chip" data-cmode="done" aria-pressed="${S.cmode==="done"}">확인한 것 <b>${checkedItems().length}</b></button></div>`;
   if(S.cmode==="done"){
-    el.innerHTML=modes+(done.length?`<div class="tbl-wrap ck"><table class="tt"><thead><tr><th>처리</th><th>대장</th><th>대상</th><th>내용</th><th>확인한 날</th><th class="editonly"></th></tr></thead><tbody>${done.map(x=>`<tr ${x.row} class="qrow"><td><span class="pill p-done">${esc(x.why)}</span></td><td>${esc(x.kind)}</td><td class="code">${esc(x.tgt)}</td><td>${esc(x.sub)}</td><td class="num">${esc(fmt(x.at))}</td><td class="editonly">${x.btn}</td></tr>`).join("")}</tbody></table></div><p class="note">잘못 확정했으면 [되돌리기]를 누르세요. AI 추정 원문([추정] 표시 포함)까지 원래대로 돌아가요.</p>`:`<div class="empty">아직 확인한 항목이 없어요.</div>`);
+    el.innerHTML=modes+(done.length?`<div class="tbl-wrap ck"><table class="tt"><thead><tr><th>처리</th><th>대장</th><th>대상</th><th>내용</th><th>확인한 날</th><th class="editonly"></th></tr></thead><tbody>${done.map(x=>`<tr ${x.row} class="qrow"><td><span class="pill p-done">${esc(x.why)}</span></td><td>${esc(x.kind)}</td><td class="code">${esc(x.tgt)}${x.mine?"<div>"+x.mine+"</div>":""}</td><td>${esc(x.sub)}</td><td class="num">${esc(fmt(x.at))}</td><td class="editonly">${x.btn}</td></tr>`).join("")}</tbody></table></div><p class="note">잘못 확정했으면 [되돌리기]를 누르세요. AI 추정 원문([추정] 표시 포함)까지 원래대로 돌아가요.</p>`:`<div class="empty">아직 확인한 항목이 없어요.</div>`);
     return;
   }
   const xs=checkItems().filter(qf);
   const n=w=>xs.filter(x=>x.why===w).length;
   el.innerHTML=modes+`<p class="note">메일 정리가 자동으로 넣은 내용 중 사람이 확정해야 할 것만 모았어요. <b>AI 추정 ${n("AI 추정 원인·대책")}</b> · <b>S/N 누락 ${n("S/N·LOT 누락")}</b> · <b>S/N 불일치 ${n("S/N 불일치·확인 필요")}</b>. 줄을 누르면 열어서 고칠 수 있어요.</p>`+
-    (xs.length?`<div class="tbl-wrap ck"><table class="tt"><thead><tr><th>확인할 것</th><th>대장</th><th>대상</th><th>내용</th><th>날짜</th><th class="editonly">처리</th></tr></thead><tbody>${xs.map(x=>`<tr ${x.row} class="qrow"><td><span class="pill ${x.cls}">${esc(x.why)}</span></td><td>${esc(x.kind)}</td><td class="code">${esc(x.tgt)}</td><td>${esc(x.sub)}</td><td class="num">${esc(dshort(x.date))}</td><td class="editonly">${x.btn}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">확인할 게 없어요. 👍</div>`);
+    (xs.length?`<div class="tbl-wrap ck"><table class="tt"><thead><tr><th>확인할 것</th><th>대장</th><th>대상</th><th>내용</th><th>날짜</th><th class="editonly">처리</th></tr></thead><tbody>${xs.map(x=>`<tr ${x.row} class="qrow"><td><span class="pill ${x.cls}">${esc(x.why)}</span></td><td>${esc(x.kind)}</td><td class="code">${esc(x.tgt)}${x.mine?"<div>"+x.mine+"</div>":""}</td><td>${esc(x.sub)}</td><td class="num">${esc(dshort(x.date))}</td><td class="editonly">${x.btn}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">확인할 게 없어요. 👍</div>`);
 }
 
 /* ---------- 협력사: 회신 대기(supwait) + 협력사별 현황 + 월별 불량 추이 ---------- */
@@ -868,6 +924,9 @@ function notesFor({issueId="",codes=[],defId="",qmId=""}){
   const cs=new Set(codes.map(ncode).filter(c=>c&&c!=="미확인"));
   return sortNotes(allNotes().filter(n=>(issueId&&n.issueId===issueId)||(defId&&n.defId===defId)||(qmId&&n.qmId===qmId)||(n.codes||[]).some(c=>cs.has(ncode(c)))));
 }
+// 내가 확인 기록을 쓴 항목 표시 (2026-11-25 사용자 요청)
+function mineMark(list){ const n=list.length; return n?`<span class="pill p-mine" title="내 확인 기록 ${n}건">내 확인${n>1?" "+n:""}</span>`:""; }
+const qmCodes = a => [...new Set((String(a.sn||"")+" "+String(a.partSn||"")).toUpperCase().match(/[A-Z0-9-]{5,}/g)||[])].filter(x=>/\d{4}/.test(x));
 function codesForIssue(i){
   const c=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)).map(t=>t.code);
   S.field.filter(x=>x.issueId===i.id).forEach(x=>c.push(...codesForDef("field",x)));
@@ -987,7 +1046,7 @@ function issueCard(i, open){
   return `<details class="issue ${esc(i.level)}${i.id===S.focusId?" focus":""}" data-id="${esc(i.id)}" ${open?"open":""}>
     <summary>
       <div class="ititle">${esc(i.title)}</div>
-      <div class="imeta">${i.replyWait&&i.replyWait.at?`<span class="pill p-reply">답장 대기 D+${replyAge(i)}</span>`:""}${i.isNew?'<span class="pill p-new">NEW</span>':""}<span class="pill ${lv.c}">${lv.t}</span>${i.status==="closed"?'<span class="pill p-done">완료</span>':""}</div>
+      <div class="imeta">${i.replyWait&&i.replyWait.at?`<span class="pill p-reply">답장 대기 D+${replyAge(i)}</span>`:""}${i.isNew?'<span class="pill p-new">NEW</span>':""}<span class="pill ${lv.c}">${lv.t}</span>${mineMark(notesFor({issueId:i.id,codes:codesForIssue(i)}))}${i.status==="closed"?'<span class="pill p-done">완료</span>':""}</div>
       <div class="imeta">${i.project?`<span class="pill p-proj">${esc(i.project)}</span>`:""}<span>메일 ${mails.length}통</span><span>${esc((i.people||[]).slice(0,4).join(", "))}</span>${dueTxt(i.due)}<span>${esc(ago(i.updatedAt))}</span></div>
       ${i.nextAction?`<div class="inext"><b>할 일</b> ${esc(i.nextAction)}</div>`:""}
     </summary>
@@ -996,7 +1055,7 @@ function issueCard(i, open){
       ${(()=>{ const ts=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)); return ts.length?`<div class="rel" style="margin-top:8px"><span class="note">추적 대상</span>${ts.map(t=>`<button class="tchip ${t.status!=="closed"&&t.kind!=="part"?"bad":""}" data-act="trace" data-id="${esc(t.id)}">${esc(t.code)}</button>`).join("")}</div>`:""; })()}
       ${(()=>{ const cs=codesForIssue(i); return notesBlock(notesFor({issueId:i.id,codes:cs}),{issueId:i.id,codes:cs.slice(0,6)}); })()}
       <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${thumbRow(m.mid)}${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
-      <div class="actions">
+      <div class="actions webok">
         <button data-act="${i.status==="closed"?"reopen":"close"}" data-id="${esc(i.id)}">${i.status==="closed"?"다시 열기":"완료 처리"}</button>
         ${i.level!=="red"?`<button data-act="lv" data-lv="red" data-id="${esc(i.id)}">처리로 올리기</button>`:`<button data-act="lv" data-lv="yellow" data-id="${esc(i.id)}">지켜봄으로 내리기</button>`}
       </div>
@@ -1064,9 +1123,13 @@ const dshort = s => s ? String(s).slice(0,10).replace(/^\d{4}-/,"").replace("-",
 function traceMatch(t,q){ if(!q) return true; return [t.code,t.kind,t.model,t.partNo,t.partName,t.supplier,t.parentSn,t.site,t.note,(t.events||[]).map(e=>e.type+" "+e.text).join(" ")].join(" ").toLowerCase().includes(q); }
 function traceRow(t){
   const st=t.status==="closed"?'<span class="pill p-done">종결</span>':(t.kind==="part"?'<span class="pill p-yellow">관리 중</span>':'<span class="pill p-red">추적 중</span>');
-  return `<tr data-key="${esc(t.id)}" class="${S.tsel===t.id?"sel":""}"><td><div class="code">${esc(t.code)}</div><div class="note">${esc(KIND[t.kind]||t.kind)}${t.parentSn?" · 상위 "+esc(t.parentSn):""}</div></td><td>${esc(t.model||"")}${t.partName?`<div class="note">${esc(t.partNo?t.partNo+" ":"")}${esc(t.partName)}</div>`:""}</td><td>${st}</td><td class="num">${tFails(t)}</td><td class="num">${esc(dshort(tLast(t)))}</td></tr>`;
+  return `<tr data-key="${esc(t.id)}" class="${S.tsel===t.id?"sel":""}"><td><div class="code">${esc(t.code)}</div>${mineMark(notesFor({codes:[t.code]}))}<div class="note">${esc(KIND[t.kind]||t.kind)}${t.parentSn?" · 상위 "+esc(t.parentSn):""}</div></td><td>${esc(t.model||"")}${t.partName?`<div class="note">${esc(t.partNo?t.partNo+" ":"")}${esc(t.partName)}</div>`:""}</td><td>${st}</td><td class="num">${tFails(t)}</td><td class="num">${esc(dshort(tLast(t)))}</td></tr>`;
 }
 const thead=`<thead><tr><th>S/N · 품번</th><th>제품 · 부품</th><th>상태</th><th class="num">불량</th><th class="num">최근</th></tr></thead>`;
+// 추적 묶음을 펼치거나 접은 상태를 기억 — 줄을 눌러 상세를 볼 때 다시 그려도 그대로 (2026-11-25)
+S.tgOpen=new Set(); S.tgClosed=new Set();
+document.addEventListener("toggle",e=>{ const d=e.target; if(!d.matches||!d.matches("details.grp[data-gk]")) return; const k=d.dataset.gk;
+  if(d.open){ S.tgOpen.add(k); S.tgClosed.delete(k); } else { S.tgOpen.delete(k); S.tgClosed.add(k); } },true);
 function renderTrace(){
   const q=S.q.trim().toLowerCase();
   const xs=S.trace.filter(t=>traceMatch(t,q)).sort((a,b)=>String(tLast(b)).localeCompare(String(tLast(a))));
@@ -1083,7 +1146,8 @@ function renderTrace(){
     const names=Object.keys(groups).sort((a,b)=>String(tLast(groups[b][0])).localeCompare(String(tLast(groups[a][0]))));
     body = names.length? names.map(n=>{ const g=groups[n]; const open=g.filter(t=>t.kind!=="part"&&t.status!=="closed").length; const fails=g.reduce((s,t)=>s+tFails(t),0);
       const head=g.find(t=>t.kind==="part"); const sub = S.tmode==="part" && head ? `${esc(head.partName||"")}${head.supplier?" · "+esc(head.supplier):""}` : "";
-      return `<details class="grp" ${q||names.length<=4?"open":""}><summary><span class="gt ${S.tmode==="part"?"code":""}">${esc(n)}</span><span class="note">${sub}</span><span class="note">항목 ${g.length} · 추적 중 ${open} · 불량 기록 ${fails}</span></summary><div class="tbl-wrap"><table class="tt">${thead}<tbody>${g.map(traceRow).join("")}</tbody></table></div></details>`; }).join("") : `<div class="empty">조건에 맞는 항목이 없어요.</div>`;
+      const gk=S.tmode+":"+n; const isOpen=S.tgOpen.has(gk)||(!S.tgClosed.has(gk)&&(q||names.length<=4||g.some(t=>t.id===S.tsel)));
+      return `<details class="grp" data-gk="${esc(gk)}" ${isOpen?"open":""}><summary><span class="gt ${S.tmode==="part"?"code":""}">${esc(n)}</span><span class="note">${sub}</span><span class="note">항목 ${g.length} · 추적 중 ${open} · 불량 기록 ${fails}</span>${(()=>{ const m=g.filter(t=>notesFor({codes:[t.code]}).length).length; return m?`<span class="pill p-mine" title="내 확인 기록이 있는 항목 ${m}개">내 확인 ${m}</span>`:""; })()}</summary><div class="tbl-wrap"><table class="tt">${thead}<tbody>${g.map(traceRow).join("")}</tbody></table></div></details>`; }).join("") : `<div class="empty">조건에 맞는 항목이 없어요.</div>`;
   }
   $("#v-trace").innerHTML = modes + `<div class="tgrid"><div style="min-width:0">${body}</div><div style="min-width:0">${traceDetail()}</div></div>`;
 }
@@ -1190,8 +1254,8 @@ function renderDef(k){
   const fSnCell=x=>!snOk("field",x)?'<span class="pill p-red">S/N 없음</span>':has(x.sn)?`<div class="code sn1">${esc(x.sn)}</div>${has(x.partSn)?`<div class="note">부품</div><div class="note code sn1">${esc(x.partSn)}</div>`:""}`:has(x.partSn)?`<div class="note">부품</div><div class="note code sn1">${esc(x.partSn)}</div>`:`<span class="note">${esc(x.noSnReason)}</span>`;
   const rmaCell=x=>{ const g=rmaStage(x); if(!g) return '<span class="no-mark">–</span>'; return `<span class="pill ${g==="완료"?"p-done":rmaStale(x)?"p-red":"p-yellow"}" style="white-space:nowrap" title="${esc(x.rma||"")}">${esc(g)}${rmaStale(x)?" 정체":""}</span>`; };
   const row = x => k==="iqc"
-    ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`
-    : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}</td><td>${siteCell(x)}</td><td>${modelCell(x)}</td><td>${fSnCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="note">(에러 <span class="code">${esc(x.errorCode)}</span>)</span>`:""}${rep(x)}${has(x.defectType)?`<div class="note">${esc(x.defectType)}</div>`:""}</td><td>${rmaCell(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
+    ? `<tr data-def="${esc(x.id)}" data-kind="iqc"><td class="num">${esc(dshort(x.date))}${mineMark(notesFor({defId:x.id,codes:codesForDef("iqc",x)}))}</td><td>${esc(x.supplier||"")}</td><td><div class="code">${esc(x.partNo||"")}</div><div class="note">${esc(x.partName||"")}</div></td><td>${snCell(x)}</td><td>${esc(x.defect||"")}${x.qtyNg?` <span class="note">(${esc(x.qtyNg)}${x.qtyIn?"/"+esc(x.qtyIn):""}EA)</span>`:""}${rep(x)}</td><td>${esc(x.disposition||"")}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`
+    : `<tr data-def="${esc(x.id)}" data-kind="field"><td class="num">${esc(dshort(x.date))}${mineMark(notesFor({defId:x.id,codes:codesForDef("field",x)}))}</td><td>${siteCell(x)}</td><td>${modelCell(x)}</td><td>${fSnCell(x)}</td><td>${esc(x.symptom||"")}${x.errorCode?` <span class="note">(에러 <span class="code">${esc(x.errorCode)}</span>)</span>`:""}${rep(x)}${has(x.defectType)?`<div class="note">${esc(x.defectType)}</div>`:""}</td><td>${rmaCell(x)}</td><td>${mark(x.cause)}</td><td>${mark(x.actionPerm)}</td><td>${st(x)}</td></tr>`;
   el.innerHTML = bar + (xs.length?`<div class="tbl-wrap"><table class="tt"><thead>${head}</thead><tbody>${xs.map(row).join("")}</tbody></table></div>`:`<div class="empty">조건에 맞는 항목이 없어요.</div>`);
 }
 
@@ -1301,7 +1365,7 @@ ${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 �
 /* ---------- routing & filters ---------- */
 // Y: 드라이브 연결은 2026-11-24 사용자 요청으로 전부 뺐다 (탭·수입검사 'Y: 대장' 열·추적 상세·DB 읽기). renderYlink 등 함수는 쓰이지 않음.
 // 신호등 탭은 2026-11-25 뺐다 (이슈 탭과 중복). 확인·협력사 탭 추가.
-const VIEWS=["issues","asks","iqc","field","trace","qmeet","sup","check","log"];
+const VIEWS=["issues","asks","iqc","field","trace","qmeet","sup","check","notes","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
@@ -1326,6 +1390,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.qmode){ S.qmode=t.dataset.qmode; render(); return; }
   if(t.dataset.amode){ S.amode=t.dataset.amode; render(); return; }
   if(t.dataset.cmode){ S.cmode=t.dataset.cmode; render(); return; }
+  if(t.dataset.nmode){ S.nmode=t.dataset.nmode; render(); return; }
   if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
   if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"){ location.hash="issues"; } render(); return; }
   if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=S.onlyRed=false; render(); return; }
@@ -1336,7 +1401,8 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{ if(e.key!=="Enter"||!e.target.dataset) return; if(e.target.dataset.btab){ location.hash=e.target.dataset.btab; return; } if(e.target.dataset.open) openIssue(e.target.dataset.open); else if(e.target.dataset.def){ const k=e.target.dataset.kind; const x=S[k].find(y=>y.id===e.target.dataset.def); if(x) openDef(k,x,false); } });
 $("#q").addEventListener("input",e=>{ S.q=e.target.value; render(); });
-function openIssue(id){
+function openIssue(id){ if(S.view!=="issues"){ showPop("issue",id); return; } openIssueTab(id); }
+function openIssueTab(id){
   S.onlyNew=S.onlyDue=false; S.closed=S.closed||(S.issues.find(i=>i.id===id)||{}).status==="closed";
   S.openIds.add(id); S.focusId=id; S.view="issues";
   // location.hash를 바꾸면 hashchange → 다시 그리기가 한 번 더 일어나 카드가 닫히고 위치가 틀어진다. 주소만 바꾸고 이벤트는 안 낸다.
@@ -1360,7 +1426,22 @@ document.addEventListener("toggle",e=>{ const d=e.target; if(d.classList&&d.clas
 
 /* ---------- actions ---------- */
 const byId = id => S.issues.find(i=>i.id===id);
-async function patch(path,data){ if(!db){ toast("저장할 수 없어요. 로그인 상태를 확인해 주세요."); return false; } try{ await db.doc(path).update(data); return true; }catch(err){ toast("저장하지 못했어요: "+(err.code||"오류")); return false; } }
+// 폰(웹 사본)에서 누른 이슈·품질회의 버튼은 서버(/edit)에 저장 → 다음 메일 정리 때 상황판 DB로 옮겨진다 (2026-11-25).
+const EDIT_API = WEB ? WEB.replace(/\/?$/,"") + "/edit" : "";
+function applyEdit(path,data){
+  const [c,id]=[path.slice(0,path.indexOf("/")), path.slice(path.indexOf("/")+1)];
+  const x=(c==="issues"?S.issues:c==="qmeet"?S.qm:[]).find(y=>y.id===id); if(!x) return;
+  Object.entries(data).forEach(([k,v])=>{
+    if(k==="asksMine"&&Array.isArray(v)) x.asksMine=(x.asksMine||[]).map((o,j)=>v[j]&&v[j].what===o.what?{...o,done:v[j].done,doneManual:true,doneAt:v[j].doneAt}:o);
+    else x[k]=v; });
+}
+async function loadWebEdits(){ if(!EDIT_API) return; try{ const r=await fetch(EDIT_API,{cache:"no-store"}); if(r.ok){ const d=await r.json(); Object.entries(d.edits||{}).forEach(([p,e])=>applyEdit(p,e.data||{})); } }catch(_){} }
+async function patch(path,data){
+  if(!db && EDIT_API && /^(issues|qmeet)\//.test(path)){
+    try{ const r=await fetch(EDIT_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path,data})}); const j=await r.json().catch(()=>({}));
+      if(!r.ok) throw new Error(j.error||String(r.status)); applyEdit(path,data); render(); return true; }
+    catch(err){ toast("저장하지 못했어요: "+(err.message||"오류")); render(); return false; } }
+  if(!db){ toast("여기서는 바꿀 수 없어요 (PC 상황판에서 해 주세요)."); return false; } try{ await db.doc(path).update(data); return true; }catch(err){ toast("저장하지 못했어요: "+(err.code||"오류")); return false; } }
 function mcpMsg(err){ const c=err&&err.code; return ({needs_reauth:"Microsoft 365 연결이 만료됐어요. claude.ai 설정 → 커넥터에서 다시 연결해 주세요.",server_not_connected:"Microsoft 365 커넥터가 연결돼 있지 않아요. claude.ai 설정 → 커넥터에서 추가해 주세요.",not_in_manifest:"이 페이지에서 Microsoft 365 사용을 허용하지 않았어요. 페이지 권한에서 켜 주세요.",approval_required:"승인이 필요해요. 버튼을 다시 눌러 허용해 주세요.",blocked_by_policy:"회사 정책으로 막혀 있어요.",tool_error:"Outlook이 요청을 거절했어요: "+(err.message||"")}[c]) || ("Outlook 연결 오류("+(c||"알 수 없음")+"). 잠시 후 다시 시도해 주세요. 이미 만들어졌을 수 있으니 Outlook에서 먼저 확인해 주세요."); }
 
 let cur=null;
@@ -1395,7 +1476,14 @@ async function handle(act,t){
     openDef(k,x,true); return; }
   if(act==="trace"){ S.tsel=id; S.q=""; $("#q").value=""; location.hash="trace"; S.view="trace"; render(); window.scrollTo({top:0,behavior:"smooth"}); return; }
   if(act==="tclose"){ const x=tById(id); await patch("trace/"+id,{status:x.status==="closed"?"open":"closed"}); return; }
-  if(act==="mv"){ const a=S.asks.find(x=>x.id===id); const k=STAGES.findIndex(s=>s[0]===(a.stage||"requested"))+Number(t.dataset.d); if(k>=0&&k<4) await patch("asks/"+id,{stage:STAGES[k][0], movedAt:new Date().toISOString()}); return; }
+  if(act==="mv"){ const a=S.asks.find(x=>x.id===id); const k=STAGES.findIndex(s=>s[0]===(a.stage||"requested"))+Number(t.dataset.d); if(k<0||k>3) return; const stage=STAGES[k][0];
+    if(db){ await patch("asks/"+id,{stage, movedAt:new Date().toISOString()}); return; }
+    if(!ASK_API){ toast("여기서는 옮길 수 없어요"); return; }
+    const before=[a.stage,a.movedAt]; a.stage=stage; a.movedAt=new Date().toISOString(); render();
+    try{ const r=await fetch(ASK_API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({id,stage})}); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||String(r.status));
+      a.movedAt=j.at||a.movedAt; S.webMoves=Object.assign({},S.webMoves,{[id]:{stage,at:a.movedAt}}); toast(STAGES[k][1]+"(으)로 옮겼어요"); }
+    catch(err){ [a.stage,a.movedAt]=before; render(); toast("저장하지 못했어요: "+(err.message||"오류")); }
+    return; }
   if(act==="draft"){ const i=byId(id); cur={kind:"issue",item:i}; openDraft(i.title,(i.mails||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))), i.replyTo); return; }
   if(act==="remind"){ const a=S.asks.find(x=>x.id===id); cur={kind:"ask",item:a}; openDraft("리마인드: "+a.what,[{mid:a.mid,from:a.to,subject:a.what,at:a.askedAt}],a.mid); $("#dIntent").value=`${a.to}님께 "${a.what}" 진행 상황을 정중하게 다시 여쭤보는 리마인드`; return; }
   if(act==="event"){ const i=byId(id); cur={item:i}; $("#eSub").value=i.title; $("#eDate").value=i.due||new Date(Date.now()+864e5).toISOString().slice(0,10); $("#eBody").value=[i.nextAction,i.summary].filter(Boolean).join("\n\n"); $("#eMsg").textContent=""; $("#eSave").disabled=!mcp; if(!mcp) $("#eMsg").textContent="이 화면에서는 Outlook에 연결할 수 없어요."; $("#dlgEvent").showModal(); return; }
@@ -1454,7 +1542,7 @@ async function loadWeb(){
     S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]); setThumbs(d.thumbs||[]); S.sw=d.supwait||[];
     S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
     S.notes=d.notes||[];
-    await Promise.all([loadWebRead(), loadWebNotes()]);
+    await Promise.all([loadWebRead(), loadWebNotes(), loadWebMoves(), loadWebEdits()]);
     S.loadErr=false;
   }catch(e){ S.loadErr=true; }
   S.loaded=true; render();
@@ -1470,7 +1558,7 @@ $("#refreshBtn").addEventListener("click", async ()=>{
 async function boot(){
   route();
   if(WEB){
-    document.documentElement.classList.add("web"); $("#homeLink").hidden=false;
+    document.documentElement.classList.add("web"); $("#homeLink").hidden=(window.top!==window); // 홈 화면 안(위에 메뉴 줄)에서는 ← 불필요
     await loadWeb(); return;
   }
   const timer=setTimeout(()=>{ if(!S.loaded){ S.loaded=true; render(); $("#stamp").textContent="데이터에 아직 연결되지 않았어요"; } },10000);
