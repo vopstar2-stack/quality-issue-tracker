@@ -15,7 +15,7 @@
 /* Layout: 상단 바 → 답장 대기 → 숫자 4개 → 탭 보기. 조용한 청회색 바탕 + 상태색만 또렷하게(처리=빨강, 지켜봄=호박, 완료=초록) */
 :root{
   --bg:#f1f4f7; --panel:#ffffff; --ink:#16202a; --muted:#5f6c79; --line:#e3e8ee; --soft:#f3f6f9; --line-strong:#cfd7e0;
-  --accent:#1d5d8a; --accent-ink:#ffffff; --accent-soft:#e6eff6;
+  --accent:#1d5d8a; --accent-ink:#ffffff; --accent-soft:#e6eff6; --s1:#2a78d6; --s2:#eb6834;
   --red:#c3362c; --red-bg:#fcebe9; --amber:#a8701a; --amber-bg:#fbf1df; --grey:#7a8794; --grey-bg:#edf0f3; --green:#2b7a4b; --green-bg:#e4f3ea;
   --shadow:0 1px 2px rgba(22,32,42,.05),0 2px 8px rgba(22,32,42,.04);
   --f-body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
@@ -24,13 +24,13 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#0f141a; --panel:#171e26; --ink:#e3e8ee; --muted:#93a0ad; --line:#252f3a; --soft:#1c242d; --line-strong:#34404c;
-  --accent:#62a9d9; --accent-ink:#0c151e; --accent-soft:#1a2c3b;
+  --accent:#62a9d9; --accent-ink:#0c151e; --accent-soft:#1a2c3b; --s1:#3987e5; --s2:#d95926;
   --red:#ef6b60; --red-bg:#3a1d1b; --amber:#e0a84a; --amber-bg:#352a17; --grey:#93a1ae; --grey-bg:#232c36; --green:#5cc08a; --green-bg:#18301f;
   --shadow:0 1px 2px rgba(0,0,0,.3);
   color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f141a; --panel:#171e26; --ink:#e3e8ee; --muted:#93a0ad; --line:#252f3a; --soft:#1c242d; --line-strong:#34404c;
-  --accent:#62a9d9; --accent-ink:#0c151e; --accent-soft:#1a2c3b;
+  --accent:#62a9d9; --accent-ink:#0c151e; --accent-soft:#1a2c3b; --s1:#3987e5; --s2:#d95926;
   --red:#ef6b60; --red-bg:#3a1d1b; --amber:#e0a84a; --amber-bg:#352a17; --grey:#93a1ae; --grey-bg:#232c36; --green:#5cc08a; --green-bg:#18301f;
   --shadow:0 1px 2px rgba(0,0,0,.3);
   color-scheme:dark}
@@ -142,6 +142,30 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .rsteps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
 .rsteps i.on{background:var(--accent)}
 .ysec{font-size:14px;margin:20px 0 6px;display:flex;gap:8px;align-items:baseline}
+/* 이번 주 일정 한 줄 */
+.week{margin-top:10px;display:grid;grid-template-columns:repeat(var(--wd,5),minmax(0,1fr));gap:6px}
+@media (max-width:640px){.week{display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.week::-webkit-scrollbar{display:none}.wday{flex:0 0 132px}}
+.wday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:0}
+.wday.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+.wday .wd{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between}
+.wday.today .wd{color:var(--accent)}
+.wday .wi{display:block;font-size:12px;line-height:1.35;margin-top:3px;padding:2px 5px;border-radius:5px;background:var(--soft);color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;text-align:left;width:100%}
+.wday .wi:hover{outline:1px solid var(--accent)}
+.wday .wi.meet{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.wday .wi.over{background:var(--red-bg);color:var(--red);font-weight:600}
+.wday .none{font-size:12px;color:var(--muted);margin-top:3px}
+/* 협력사 탭 */
+.sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:860px){.sgrid{grid-template-columns:1fr}}
+.swait .d{font-family:var(--f-mono);font-weight:600}
+.swait .d.late{color:var(--red)} .swait .d.warn{color:var(--amber)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px}
+.chart .lg{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:4px}
+.chart .lg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.chart svg{display:block;width:100%;height:auto}
+.chart .tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--panel);font-size:12px;padding:4px 8px;border-radius:6px;white-space:nowrap}
+/* 확인 필요 */
+.ck .why{font-size:11.5px;font-weight:600}
 /* 통합 검색 결과: 모든 탭을 한 번에 찾아 묶어서 보여 준다 */
 .hits{background:var(--panel);border:1px solid var(--accent);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px;margin-bottom:12px}
 .hits h3{margin:0 0 6px;font-size:13px;display:flex;gap:8px;align-items:baseline}
@@ -289,19 +313,22 @@ dialog textarea{min-height:200px;resize:vertical}
   <section class="reply" id="reply" hidden aria-label="답장 대기"></section>
 
   <div class="kpis" id="kpis">
-    <button class="kpi r" data-go="signal" title="내가 처리할 것"><span class="n" id="k-red">–</span><span class="l">처리할 것</span></button>
+    <button class="kpi r" data-go="issues" data-red="1" title="내가 처리할 것"><span class="n" id="k-red">–</span><span class="l">처리할 것</span></button>
     <button class="kpi a" data-go="issues" data-due="1" title="기한 3일 이내·지남"><span class="n" id="k-due">–</span><span class="l">기한 임박</span></button>
     <button class="kpi b" data-go="asks" title="회신 기다리는 부탁"><span class="n" id="k-ask">–</span><span class="l">회신 대기</span></button>
     <button class="kpi" data-go="field" data-rma="1" title="RMA 진행 중 · 한 단계에서 7일 넘게 정체된 건"><span class="n" id="k-rma">–</span><span class="l">RMA 진행 · 정체 <span id="k-rma-st">0</span></span></button>
   </div>
 
+  <section class="week" id="week" aria-label="이번 주 일정"></section>
+
   <nav class="tabs" aria-label="보기">
     <a href="#issues" data-v="issues" title="이슈별 묶음">이슈<span class="cnt" id="c-issues">0</span></a>
-    <a href="#signal" data-v="signal">신호등</a>
-    <a href="#asks" data-v="asks" title="부탁 트래커">부탁<span class="cnt" id="c-asks">0</span></a>
+    <a href="#asks" data-v="asks" title="내가 보낸 요청 + 우리 팀이 받은 요청">요청<span class="cnt" id="c-asks">0</span></a>
     <a href="#iqc" data-v="iqc" title="수입검사 불량">수입검사<span class="cnt" id="c-iqc">0</span></a>
     <a href="#field" data-v="field" title="필드 불량">필드<span class="cnt" id="c-field">0</span></a>
     <a href="#trace" data-v="trace" title="추적 (S/N·부품)">추적<span class="cnt" id="c-trace">0</span></a>    <a href="#qmeet" data-v="qmeet">품질회의<span class="cnt" id="c-qmeet">0</span></a>
+    <a href="#sup" data-v="sup" title="협력사별 회신 대기·불량 추이">협력사<span class="cnt" id="c-sup">0</span></a>
+    <a href="#check" data-v="check" title="자동으로 넣은 내용 중 사람이 확인해야 할 것">확인<span class="cnt" id="c-check">0</span></a>
   </nav>
 
   <div class="filters" id="filters">
@@ -319,6 +346,8 @@ dialog textarea{min-height:200px;resize:vertical}
   <section id="v-trace" hidden></section>
   <section id="v-ylink" hidden></section>
   <section id="v-qmeet" hidden></section>
+  <section id="v-sup" hidden></section>
+  <section id="v-check" hidden></section>
   <section id="v-log" class="log" hidden></section>
 </main>
 
@@ -364,7 +393,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LV = {red:{t:"처리",c:"p-red",dot:"var(--red)"},yellow:{t:"지켜봄",c:"p-yellow",dot:"var(--amber)"},white:{t:"참고",c:"p-white",dot:"var(--grey)"}};
 const STAGES = [["requested","요청함"],["waiting","회신 대기"],["progress","진행 중"],["done","완료"]];
-const S = {thumbs:{}, qm:[], qmMeet:[], qmode:"next", qstage:"", y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
+const S = {sw:[], amode:"sent", thumbs:{}, qm:[], qmMeet:[], qmode:"next", qstage:"", y:{regIqc:[],finalIss:[],calib:[],rayqc:[],meta:null}, fmode:"list", openIds:new Set(), focusId:null, issues:[], asks:[], briefs:[], trace:[], iqc:[], field:[], dstat:"open", tmode:"model", tsel:null, meta:null, view:"issues", proj:"", q:"", closed:false, onlyNew:false, onlyDue:false, loaded:false};
 let db=null, mcp=null, sample=null;
 const WEB = (document.querySelector('meta[name="mail-dashboard-source"]')||{}).content || "";
 const hasData = () => !!db || (WEB && !S.loadErr);
@@ -386,6 +415,7 @@ function visibleIssues(){
     if(!S.closed && i.status==="closed") return false;
     if(S.proj && i.project!==S.proj) return false;
     if(S.onlyNew && !i.isNew) return false;
+    if(S.onlyRed && i.level!=="red") return false;
     if(S.onlyDue){ const n=dday(i.due); if(n==null||n>3) return false; }
     if(q && !hitTest(hayIssue(i),{raw:q,c:compactQ(q)})) return false;
     return true;
@@ -452,7 +482,7 @@ function render(){
   $("#k-new").textContent=open.filter(i=>i.isNew).length;
   $("#onlyNew").setAttribute("aria-pressed", String(S.onlyNew));
   $("#c-issues").textContent=open.length;
-  $("#c-asks").textContent=S.asks.filter(a=>a.stage!=="done").length;
+  $("#c-asks").textContent=S.asks.filter(a=>a.stage!=="done").length+teamAskRows().filter(x=>!x.done).length;
 
   // 프로젝트 칩 줄은 2026-11-25 사용자 요청으로 뺐다 (전체 검색으로 대신). 카드의 프로젝트 표시는 남겨 둔다.
   $("#showClosed").setAttribute("aria-pressed", String(S.closed));
@@ -463,11 +493,14 @@ function render(){
   $("#c-field").textContent=S.field.filter(x=>x.status!=="closed").length;
   VIEWS.forEach(v=>$("#v-"+v).hidden = v!==S.view);
   $("#filters").hidden = S.view==="log";
-  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet";
+  const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet"||S.view==="sup"||S.view==="check"||S.view==="asks";
   $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
   $("#showClosed").hidden = $("#onlyNew").hidden = plain;
   $("#q").placeholder = "전체 검색 — S/N, 품번, LOT, 제목, 사람, 협력사…";
-  ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
+  ({issues:renderIssues, asks:renderAsks, sup:renderSup, check:renderCheck, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
+  renderWeek();
+  $("#c-sup").textContent=S.sw.filter(x=>x.status!=="done").length;
+  $("#c-check").textContent=checkItems().length;
   renderHits();
 }
 
@@ -622,22 +655,105 @@ function renderQm(){
   const last=qmLast(), next=qmNext();
   const open=S.qm.filter(a=>a.stage!=="종결");
   const chg=S.qm.filter(a=>qmChanged(a,last));
-  const asks=S.qm.flatMap(a=>(a.asksMine||[]).map(x=>({...x,a})));
-  const oAsks=asks.filter(x=>!x.done);
-  const modes=`<div class="tmodes"><button class="chip" data-qmode="next" aria-pressed="${S.qmode==="next"}">다음 회의 준비 <b>${chg.length}</b></button><button class="chip" data-qmode="all" aria-pressed="${S.qmode==="all"}">전체 안건</button><button class="chip" data-qmode="mine" aria-pressed="${S.qmode==="mine"}">우리 팀 요청 <b>${oAsks.length}</b></button></div>`;
+  const modes=`<div class="tmodes"><button class="chip" data-qmode="next" aria-pressed="${S.qmode==="next"}">다음 회의 준비 <b>${chg.length}</b></button><button class="chip" data-qmode="all" aria-pressed="${S.qmode==="all"}">전체 안건</button></div>`; if(S.qmode==="mine") S.qmode="next"; // 우리 팀 요청은 요청 탭으로 옮김
   const head=`<div class="qhead"><div><div class="note">다음 품질회의</div><div class="big">${esc(dshort(next))} (${["일","월","화","수","목","금","토"][new Date(next+"T00:00").getDay()]}) 10:00</div></div><div><div class="note">지난 회의</div><div class="big">${esc(dshort(last))}</div></div><div><div class="note">그 뒤 새 안건 · 진행 소식</div><div class="big">${S.qm.filter(a=>(a.raisedAt||"")>last).length} · ${chg.filter(a=>(a.raisedAt||"")<=last).length}</div></div><div><div class="note">진행 중 안건</div><div class="big">${open.length}</div></div></div>`;
-  if(S.qmode==="mine"){
-    const asks=S.qm.flatMap(a=>(a.asksMine||[]).map((x,j)=>({...x,a,j})));
-    const rows=asks.filter(x=>hit(x.a)||(q&&String(x.what).toLowerCase().includes(q))).sort((x,y)=>(x.done-y.done)||String(y.at).localeCompare(String(x.at)));
-    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr data-qopen="${esc(x.a.id)}" class="qrow" title="안건 자세히 보기"><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}<div class="editonly" style="margin-top:4px"><button class="qbtn" data-act="qask" data-id="${esc(x.a.id)}" data-i="${x.j}">${x.done?"되돌리기":"완료 처리"}</button></div></td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
-    return;
-  }
   const cnt=s=>S.qm.filter(a=>(a.stage||"상정")===s).length;
   const stg=S.qmode==="all"?`<div class="dbar">${QST.map(s=>`<button class="chip" data-qstage="${s}" aria-pressed="${S.qstage===s}">${QST_T[s]} ${cnt(s)}</button>`).join("")}</div>`:"";
   let xs = S.qmode==="next" ? chg : S.qm.filter(a=>S.qstage?(a.stage||"상정")===S.qstage:a.stage!=="종결");
   xs=xs.filter(hit).sort((a,b)=>(qmOpenAsks(b).length>0)-(qmOpenAsks(a).length>0) || String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt)));
   const sub = S.qmode==="next" ? `<p class="note">지난 회의(${esc(dshort(last))}) 뒤에 새로 상정됐거나 진행 소식이 온 안건이에요. 회의 들어가기 전에 이것만 보시면 돼요.</p>` : `<p class="note">종결 안건은 '종결' 칩을 눌러 보세요.</p>`;
   el.innerHTML=modes+head+stg+sub+(xs.length?`<div class="list">${xs.map(a=>qmCard(a,last)).join("")}</div>`:`<div class="empty">${S.qmode==="next"?"지난 회의 뒤로 바뀐 안건이 없어요.":"조건에 맞는 안건이 없어요."}</div>`);
+}
+
+/* ---------- 이번 주 일정: 품질회의(월·목), 이슈·요청·대장·협력사 회신 기한을 날짜별로 ---------- */
+function weekItems(d){
+  const out=[]; const w=new Date(d+"T00:00").getDay();
+  if(w===1||w===4) out.push({c:"meet",t:"품질회의 10:00",a:'data-go="qmeet"'});
+  S.issues.filter(i=>i.status!=="closed"&&i.due===d).forEach(i=>out.push({t:i.title,a:`data-open="${esc(i.id)}"`}));
+  S.asks.filter(a=>a.stage!=="done"&&a.due===d).forEach(a=>out.push({t:"요청 · "+a.what,a:'data-go="asks"'}));
+  teamAskRows().filter(x=>!x.done&&x.due===d).forEach(x=>out.push({t:"받은 요청 · "+x.what,a:`data-qopen="${esc(x.a.id)}"`}));
+  ["iqc","field"].forEach(k=>S[k].filter(x=>x.status!=="closed"&&x.due===d).forEach(x=>out.push({t:(k==="iqc"?"수입 · "+(x.partNo||""):"필드 · "+(x.sn||x.model||"")),a:`data-def="${esc(x.id)}" data-kind="${k}"`})));
+  S.sw.filter(x=>x.status!=="done"&&x.due===d).forEach(x=>out.push({t:normSup(x.supplier)+" 회신 기한",a:'data-go="sup"'}));
+  return out;
+}
+function renderWeek(){
+  const el=$("#week"); if(!S.loaded){ el.hidden=true; return; } el.hidden=false;
+  const now=new Date(); now.setHours(0,0,0,0); const wd=now.getDay();
+  // 평일이면 이번 주 월요일, 주말이면 다음 주 월요일부터 보여 준다.
+  const mon=new Date(now); mon.setDate(now.getDate()+(wd===6?2:wd===0?1:1-wd));
+  const days=[...Array(7)].map((_,k)=>{ const x=new Date(mon); x.setDate(mon.getDate()+k); return ymd(x); });
+  const items=Object.fromEntries(days.map(d=>[d,weekItems(d)]));
+  const show=days.filter((d,k)=>k<5||items[d].length);
+  const monS=days[0];
+  const over=S.issues.filter(i=>i.status!=="closed"&&i.due&&i.due<monS).length;
+  const T=ymd(now), W=["일","월","화","수","목","금","토"];
+  el.style.setProperty("--wd",show.length);
+  el.innerHTML=show.map((d,k)=>{ const xs=items[d]; const lim=4;
+    return `<div class="wday${d===T?" today":""}"><div class="wd"><span>${W[new Date(d+"T00:00").getDay()]} ${esc(dshort(d))}</span>${d===T?"<span>오늘</span>":""}</div>${k===0&&over?`<button class="wi over" data-go="issues" data-due="1">지난 기한 ${over}건</button>`:""}${xs.slice(0,lim).map(x=>`<button class="wi ${x.c||""}" ${x.a} title="${esc(x.t)}">${esc(x.t)}</button>`).join("")}${xs.length>lim?`<div class="none">외 ${xs.length-lim}건</div>`:""}${!xs.length&&!(k===0&&over)?'<div class="none">–</div>':""}</div>`; }).join("");
+}
+
+/* ---------- 확인 필요: 자동으로 넣은 내용 중 사람이 확정해야 할 것 ---------- */
+const GUESS_F=["cause","actionTemp","actionPerm","verify"];
+function checkItems(){
+  const out=[];
+  ["iqc","field"].forEach(k=>S[k].forEach(x=>{
+    if(x.status==="closed") return;
+    const tgt=k==="iqc"?[x.partNo,x.partName].filter(Boolean).join(" "):[x.sn,x.model].filter(Boolean).join(" · ");
+    const sub=k==="iqc"?[x.supplier,x.defect].filter(Boolean).join(" — "):[x.site,x.symptom].filter(Boolean).join(" — ");
+    if(!x.checkedAt && GUESS_F.some(f=>String(x[f]||"").includes("[추정]")))
+      out.push({why:"AI 추정 원인·대책",cls:"p-yellow",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:`<button class="qbtn" data-act="ckdef" data-kind="${k}" data-id="${esc(x.id)}">맞음</button>`,kind:k==="iqc"?"수입검사":"필드"});
+    if(!snOk(k,x))
+      out.push({why:"S/N·LOT 누락",cls:"p-red",tgt,sub,date:x.date,row:`data-def="${esc(x.id)}" data-kind="${k}"`,btn:"",kind:k==="iqc"?"수입검사":"필드"});
+  }));
+  S.trace.forEach(t=>{ if(t.status==="closed"||t.checkedAt) return;
+    const txt=[t.note,(t.events||[]).map(e=>e.text).join(" ")].join(" ");
+    if(/확인 필요|불일치|정정/.test(txt)){ const ev=(t.events||[]).filter(e=>/확인 필요|불일치|정정/.test(e.text)).pop();
+      out.push({why:"S/N 불일치·확인 필요",cls:"p-red",tgt:t.code,sub:t.note||(ev&&ev.text)||"",date:tLast(t),row:`data-ckt="${esc(t.id)}"`,btn:`<button class="qbtn" data-act="cktrace" data-id="${esc(t.id)}">확인 완료</button>`,kind:"추적"}); }
+  });
+  return out.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+}
+function renderCheck(){
+  const el=$("#v-check"); if(!S.loaded||!hasData()){ el.innerHTML=emptyMsg(); return; }
+  const q=S.q.trim().toLowerCase();
+  const xs=checkItems().filter(x=>!q||[x.why,x.tgt,x.sub,x.kind].join(" ").toLowerCase().includes(q));
+  const n=w=>xs.filter(x=>x.why===w).length;
+  el.innerHTML=`<p class="note">메일 정리가 자동으로 넣은 내용 중 사람이 확정해야 할 것만 모았어요. <b>AI 추정 ${n("AI 추정 원인·대책")}</b> · <b>S/N 누락 ${n("S/N·LOT 누락")}</b> · <b>S/N 불일치 ${n("S/N 불일치·확인 필요")}</b>. 줄을 누르면 열어서 고칠 수 있어요.</p>`+
+    (xs.length?`<div class="tbl-wrap ck"><table class="tt"><thead><tr><th>확인할 것</th><th>대장</th><th>대상</th><th>내용</th><th>날짜</th><th class="editonly">처리</th></tr></thead><tbody>${xs.map(x=>`<tr ${x.row} class="qrow"><td><span class="pill ${x.cls}">${esc(x.why)}</span></td><td>${esc(x.kind)}</td><td class="code">${esc(x.tgt)}</td><td>${esc(x.sub)}</td><td class="num">${esc(dshort(x.date))}</td><td class="editonly">${x.btn}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">확인할 게 없어요. 👍</div>`);
+}
+
+/* ---------- 협력사: 회신 대기(supwait) + 협력사별 현황 + 월별 불량 추이 ---------- */
+const normSup = s => String(s||"").replace(/\(.*?\)/g,"").replace(/\s+/g," ").trim() || "미상";
+function supChart(){
+  const now=new Date(); const months=[...Array(6)].map((_,k)=>{ const x=new Date(now.getFullYear(),now.getMonth()-5+k,1); return `${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,"0")}`; });
+  const cnt=(arr,m)=>arr.filter(x=>String(x.date||"").slice(0,7)===m).length;
+  const A=months.map(m=>cnt(S.iqc,m)), B=months.map(m=>cnt(S.field,m));
+  const max=Math.max(1,...A,...B); const W=600,H=170,pb=22,pt=14,gw=W/months.length,bw=Math.min(26,gw/3);
+  const y=v=>H-pb-(H-pb-pt)*v/max;
+  const bar=(x,v,c,lbl)=>{ if(!v) return ""; const top=y(v), h=H-pb-top, r=Math.min(4,h); return `<path d="M${x},${H-pb}V${top+r}Q${x},${top} ${x+r},${top}H${x+bw-r}Q${x+bw},${top} ${x+bw},${top+r}V${H-pb}Z" fill="var(${c})"><title>${lbl}: ${v}건</title></path><text x="${x+bw/2}" y="${top-3}" text-anchor="middle" font-size="11" fill="var(--muted)">${v}</text>`; };
+  const svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="최근 6개월 월별 수입검사·필드 불량 건수">
+    <line x1="0" x2="${W}" y1="${H-pb}" y2="${H-pb}" stroke="var(--line-strong)"/>
+    ${months.map((m,k)=>{ const cx=gw*k+gw/2; return bar(cx-bw-1,A[k],"--s1",`${m} 수입검사`)+bar(cx+1,B[k],"--s2",`${m} 필드`)+`<text x="${cx}" y="${H-6}" text-anchor="middle" font-size="11" fill="var(--muted)">${Number(m.slice(5))}월</text>`; }).join("")}</svg>`;
+  return `<div class="chart"><div class="lg"><span><i style="background:var(--s1)"></i>수입검사 불량</span><span><i style="background:var(--s2)"></i>필드 불량</span><span>최근 6개월 · 상황판에 등록된 건 기준</span></div>${svg}
+    <div class="tbl-wrap" style="box-shadow:none;border:0;margin-top:4px"><table class="tt"><thead><tr><th></th>${months.map(m=>`<th class="num">${Number(m.slice(5))}월</th>`).join("")}</tr></thead><tbody><tr><td>수입검사</td>${A.map(v=>`<td class="num">${v}</td>`).join("")}</tr><tr><td>필드</td>${B.map(v=>`<td class="num">${v}</td>`).join("")}</tr></tbody></table></div></div>`;
+}
+function renderSup(){
+  const el=$("#v-sup"); if(!S.loaded||!hasData()){ el.innerHTML=emptyMsg(); return; }
+  const q=S.q.trim().toLowerCase(); const hitS=s=>!q||normQ(s).includes(q);
+  const open=S.sw.filter(x=>x.status!=="done"&&hitS([x.supplier,x.what].join(" ")));
+  const days=x=>daysSince(x.since);
+  const wrow=x=>{ const d=days(x); return `<tr ${x.issueId?`data-open="${esc(x.issueId)}" class="qrow"`:""}><td><b>${esc(normSup(x.supplier))}</b></td><td>${esc(x.what)}${x.lastNote?`<div class="note">${esc(x.lastNote)}</div>`:""}</td><td class="num"><span class="d ${d>=7?"late":d>=3?"warn":""}">D+${d}</span><div class="note">${esc(dshort(x.since))}~</div></td><td class="editonly"><button class="qbtn" data-act="swdone" data-id="${esc(x.id)}">완료</button></td></tr>`; };
+  const tbl=(rows,empty)=>rows.length?`<div class="tbl-wrap swait"><table class="tt"><thead><tr><th>협력사</th><th>무엇을</th><th class="num">기다린 날</th><th class="editonly"></th></tr></thead><tbody>${rows.sort((a,b)=>String(a.since).localeCompare(String(b.since))).map(wrow).join("")}</tbody></table></div>`:`<div class="empty">${empty}</div>`;
+  const them=open.filter(x=>x.side!=="us"), us=open.filter(x=>x.side==="us");
+  // 협력사별 현황 (수입검사 불량 대장 + 회신 대기)
+  const by={};
+  S.iqc.forEach(x=>{ const k=normSup(x.supplier); const g=by[k]=by[k]||{n:0,open:0,pn:{},last:"",wait:0,maxd:0}; g.n++; if(x.status!=="closed") g.open++; if(x.partNo) g.pn[x.partNo]=(g.pn[x.partNo]||0)+1; if(String(x.date)>g.last) g.last=String(x.date); });
+  S.sw.filter(x=>x.status!=="done"&&x.side!=="us").forEach(x=>{ const k=normSup(x.supplier); const g=by[k]=by[k]||{n:0,open:0,pn:{},last:"",wait:0,maxd:0}; g.wait++; g.maxd=Math.max(g.maxd,days(x)); });
+  const sups=Object.entries(by).filter(([k])=>hitS(k)).sort((a,b)=>(b[1].maxd-a[1].maxd)||(b[1].open-a[1].open)||(b[1].n-a[1].n));
+  const stbl=sups.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>협력사</th><th class="num">진행 중</th><th class="num">전체</th><th>반복 품번</th><th class="num">회신 대기</th><th class="num">최근 불량</th></tr></thead><tbody>${sups.map(([k,g])=>{ const rep=Object.entries(g.pn).filter(([,n])=>n>=2); return `<tr><td><b>${esc(k)}</b></td><td class="num">${g.open||"–"}</td><td class="num">${g.n||"–"}</td><td>${rep.length?rep.map(([p,n])=>`<span class="code">${esc(p)}</span> <span class="pill p-red">${n}회</span>`).join(" "):'<span class="no-mark">–</span>'}</td><td class="num">${g.wait?`${g.wait}건 <span class="d ${g.maxd>=7?"late":g.maxd>=3?"warn":""}">D+${g.maxd}</span>`:"–"}</td><td class="num">${esc(dshort(g.last))}</td></tr>`; }).join("")}</tbody></table></div>`:`<div class="empty">협력사 데이터가 없어요.</div>`;
+  el.innerHTML=`<div class="sgrid swait"><div><h3 class="ysec">협력사 회신 기다리는 중 <span class="note">${them.length}</span></h3>${tbl(them,"기다리는 회신이 없어요.")}</div><div><h3 class="ysec">우리가 답할 차례 <span class="note">${us.length}</span></h3>${tbl(us,"우리가 답할 건이 없어요.")}</div></div>
+    <h3 class="ysec">협력사별 현황 <span class="note">수입검사 불량 대장 기준 · 회신이 오래 밀린 순</span></h3>${stbl}
+    <h3 class="ysec">월별 불량 추이</h3>${supChart()}
+    <p class="note">회신 대기는 메일 정리가 협력사와 주고받은 메일(8D·시정조치·원인 분석 요청 등)에서 자동으로 채워요. 7일 넘으면 빨간색이에요.</p>`;
 }
 
 function emptyMsg(){
@@ -672,11 +788,6 @@ function issueCard(i, open){
       ${(()=>{ const ts=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)); return ts.length?`<div class="rel" style="margin-top:8px"><span class="note">추적 대상</span>${ts.map(t=>`<button class="tchip ${t.status!=="closed"&&t.kind!=="part"?"bad":""}" data-act="trace" data-id="${esc(t.id)}">${esc(t.code)}</button>`).join("")}</div>`:""; })()}
       <ul class="thread">${mails.map(m=>`<li><span class="who">${esc(m.from)}</span><span class="when">${esc(fmt(m.at))}</span><div class="gist">${esc(m.gist||m.subject)}</div>${thumbRow(m.mid)}${(m.link||m.mid)?`<a href="${esc(m.link||("https://outlook.office365.com/owa/?ItemID="+encodeURIComponent(m.mid)+"&exvsurl=1&viewmodel=ReadMessageItem"))}" target="_blank" rel="noopener">Outlook에서 열기</a>`:""}</li>`).join("")}</ul>
       <div class="actions">
-        <button data-act="draft" data-id="${esc(i.id)}" ${mails.length?"":"disabled"}>답장 초안</button>
-        <button data-act="event" data-id="${esc(i.id)}">일정 등록</button>
-        <button data-act="ask" data-id="${esc(i.id)}">부탁 목록에 추가</button>
-        <button data-act="defnew" data-kind="iqc" data-id="${esc(i.id)}">수입검사 불량으로 등록</button>
-        <button data-act="defnew" data-kind="field" data-id="${esc(i.id)}">필드 불량으로 등록</button>
         <button data-act="${i.status==="closed"?"reopen":"close"}" data-id="${esc(i.id)}">${i.status==="closed"?"다시 열기":"완료 처리"}</button>
         ${i.level!=="red"?`<button data-act="lv" data-lv="red" data-id="${esc(i.id)}">처리로 올리기</button>`:`<button data-act="lv" data-lv="yellow" data-id="${esc(i.id)}">지켜봄으로 내리기</button>`}
       </div>
@@ -686,7 +797,7 @@ function issueCard(i, open){
 
 function renderIssues(){
   const list=visibleIssues();
-  const banner=(S.onlyNew||S.onlyDue)?`<p class="note">${S.onlyNew?"직전 정리 이후 새 소식만":"기한 3일 이내·지난 것만"} 보는 중 · <button id="clearQuick">모두 보기</button></p>`:"";
+  const banner=(S.onlyNew||S.onlyDue||S.onlyRed)?`<p class="note">${S.onlyNew?"직전 정리 이후 새 소식만":S.onlyRed?"내가 처리할 것만":"기한 3일 이내·지난 것만"} 보는 중 · <button id="clearQuick">모두 보기</button></p>`:"";
   $("#v-issues").innerHTML = banner + (list.length?`<div class="list">${list.map(i=>issueCard(i,S.openIds.has(i.id))).join("")}</div>`:emptyMsg());
 }
 
@@ -701,12 +812,21 @@ function renderSignal(){
   $("#v-signal").innerHTML=`<div class="lanes">${lane("red","내가 처리할 것")}${lane("yellow","지켜볼 것")}${lane("white","참고만")}</div>`;
 }
 
+// 요청 탭 = 내가 보낸 요청(부탁 트래커) + 우리 팀이 받은 요청(품질회의 asksMine). 2026-11-25 두 탭을 합쳤다.
+function teamAskRows(){ return S.qm.flatMap(a=>(a.asksMine||[]).map((x,j)=>({...x,a,j}))); }
 function renderAsks(){
   const q=S.q.trim().toLowerCase();
-  const xs=S.asks.filter(a=>(!q || [a.what,a.to,a.lastNote].join(" ").toLowerCase().includes(q)) && (!S.proj || (S.issues.find(i=>i.id===a.issueId)||{}).project===S.proj));
   if(!S.loaded||!hasData()){ $("#v-asks").innerHTML=emptyMsg(); return; }
-  if(!S.asks.length){ $("#v-asks").innerHTML=`<div class="empty">아직 부탁한 일이 없어요. 내가 보낸 메일에서 요청한 내용을 자동으로 찾아 넣고, 이슈 카드의 "부탁 목록에 추가"로 직접 넣을 수도 있어요.</div>`; return; }
-  $("#v-asks").innerHTML=`<div class="board">${STAGES.map(([k,label],si)=>{
+  const recv=teamAskRows(); const recvOpen=recv.filter(x=>!x.done).length; const sentOpen=S.asks.filter(a=>a.stage!=="done").length;
+  const modes=`<div class="tmodes"><button class="chip" data-amode="sent" aria-pressed="${S.amode!=="recv"}">내가 보낸 요청 <b>${sentOpen}</b></button><button class="chip" data-amode="recv" aria-pressed="${S.amode==="recv"}">우리 팀이 받은 요청 <b>${recvOpen}</b></button></div>`;
+  if(S.amode==="recv"){
+    const rows=recv.filter(x=>!q||[x.what,x.from,x.a.title].join(" ").toLowerCase().includes(q)).sort((x,y)=>(x.done-y.done)||String(y.at).localeCompare(String(x.at)));
+    $("#v-asks").innerHTML=modes+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr data-qopen="${esc(x.a.id)}" class="qrow" title="안건 자세히 보기"><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}<div class="editonly" style="margin-top:4px"><button class="qbtn" data-act="qask" data-id="${esc(x.a.id)}" data-i="${x.j}">${x.done?"되돌리기":"완료 처리"}</button></div></td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div><p class="note">품질회의 메일에서 품질검사팀에 요청된 일이에요. 줄을 누르면 안건을 자세히 볼 수 있어요.</p>`:`<div class="empty">우리 팀이 받은 요청이 없어요.</div>`);
+    return;
+  }
+  const xs=S.asks.filter(a=>!q || [a.what,a.to,a.lastNote].join(" ").toLowerCase().includes(q));
+  if(!S.asks.length){ $("#v-asks").innerHTML=modes+`<div class="empty">아직 보낸 요청이 없어요. 내가 보낸 메일에서 요청한 내용을 자동으로 찾아 넣어요.</div>`; return; }
+  $("#v-asks").innerHTML=modes+`<div class="board">${STAGES.map(([k,label],si)=>{
     const col=xs.filter(a=>(a.stage||"requested")===k).sort((a,b)=>String(a.askedAt).localeCompare(String(b.askedAt)));
     return `<div class="col"><h3><span>${label}</span><span class="note">${col.length}</span></h3>${col.map(a=>{
       const age=daysSince(a.lastReplyAt||a.askedAt); const stale=(k==="requested"||k==="waiting")&&age>=3;
@@ -714,7 +834,7 @@ function renderAsks(){
         <div class="t">${esc(a.what)}</div>
         <div class="m"><span>→ ${esc(a.to)}</span><span class="age">${k==="done"?"완료":"D+"+age}</span>${dueTxt(a.due)}</div>
         ${a.lastNote?`<div class="m">${esc(a.lastNote)}</div>`:""}
-        <div class="actions">${si>0?`<button data-act="mv" data-d="-1" data-id="${esc(a.id)}" aria-label="이전 단계로">◀</button>`:""}${si<3?`<button data-act="mv" data-d="1" data-id="${esc(a.id)}" aria-label="다음 단계로">▶</button>`:""}${stale&&a.mid?`<button data-act="remind" data-id="${esc(a.id)}">리마인드 초안</button>`:""}${a.issueId?`<button data-act="goto" data-id="${esc(a.issueId)}">이슈 보기</button>`:""}</div>
+        <div class="actions">${si>0?`<button data-act="mv" data-d="-1" data-id="${esc(a.id)}" aria-label="이전 단계로">◀</button>`:""}${si<3?`<button data-act="mv" data-d="1" data-id="${esc(a.id)}" aria-label="다음 단계로">▶</button>`:""}${a.issueId?`<button data-act="goto" data-id="${esc(a.issueId)}">이슈 보기</button>`:""}</div>
       </div>`; }).join("")||'<p class="note" style="margin:4px">없음</p>'}</div>`; }).join("")}</div>
     <p class="note">3일 넘게 회신이 없는 부탁은 빨간 테두리로 표시돼요.</p>`;
 }
@@ -968,15 +1088,17 @@ ${hist?`\n같은 품번·S/N 과거 이력:\n${hist}`:""}${tr?`\n추적 대장 �
 
 /* ---------- routing & filters ---------- */
 // Y: 드라이브 연결은 2026-11-24 사용자 요청으로 전부 뺐다 (탭·수입검사 'Y: 대장' 열·추적 상세·DB 읽기). renderYlink 등 함수는 쓰이지 않음.
-const VIEWS=["issues","signal","asks","iqc","field","trace","qmeet","log"];
+// 신호등 탭은 2026-11-25 뺐다 (이슈 탭과 중복). 확인·협력사 탭 추가.
+const VIEWS=["issues","asks","iqc","field","trace","qmeet","sup","check","log"];
 function route(){ const h=location.hash.replace("#",""); S.view=VIEWS.includes(h)?h:"issues"; render(); }
 window.addEventListener("hashchange",route);
 document.addEventListener("click",e=>{
   const tr=e.target.closest("tr[data-key]"); if(tr&&!e.target.closest("button")){ S.tsel=tr.dataset.key; render(); return; }
-  const dr=e.target.closest("[data-def]"); if(dr){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
+  const ck=e.target.closest("tr[data-ckt]"); if(ck&&!e.target.closest("button")){ S.tsel=ck.dataset.ckt; S.tmode="serial"; S.view="trace"; history.pushState(null,"","#trace"); render(); scrollToCard(`#v-trace tr[data-key="${CSS.escape(ck.dataset.ckt)}"]`); return; }
+  const dr=e.target.closest("[data-def]"); if(dr&&!e.target.closest("button:not([data-def])")){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
   const ds=e.target.closest("[data-dstat]"); if(ds){ S.dstat=ds.dataset.dstat; render(); return; }
   const bt=e.target.closest("[data-btab]"); if(bt){ location.hash=bt.dataset.btab; return; }
-  const qr=e.target.closest("tr[data-qopen]"); if(qr&&!e.target.closest("button")){ openQm(qr.dataset.qopen); return; }
+  const qr=e.target.closest("[data-qopen]:not(#hits .hr)"); if(qr&&!e.target.closest("button:not([data-qopen])")){ openQm(qr.dataset.qopen); return; }
   const hr=e.target.closest("#hits .hr"); if(hr){
     if(hr.dataset.qopen){ openQm(hr.dataset.qopen); return; }
     if(hr.dataset.act==="trace"){ S.tsel=hr.dataset.id; S.tmode="serial"; S.view="trace"; if(location.hash!=="#trace") history.pushState(null,"","#trace"); render(); scrollToCard(`#v-trace tr[data-key="${CSS.escape(hr.dataset.id)}"]`); return; }
@@ -984,12 +1106,13 @@ document.addEventListener("click",e=>{
   }
   const t=e.target.closest("button,[data-open],a[data-act]"); if(!t) return;
   if(t.tagName==="A") e.preventDefault();
-  if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; if(t.dataset.rma) S.fmode="rma"; location.hash=t.dataset.go; route(); return; }
+  if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; S.onlyRed=!!t.dataset.red; if(t.dataset.rma) S.fmode="rma"; location.hash=t.dataset.go; route(); return; }
   if(t.dataset.fmode){ S.fmode=t.dataset.fmode; render(); return; }
   if(t.dataset.qmode){ S.qmode=t.dataset.qmode; render(); return; }
+  if(t.dataset.amode){ S.amode=t.dataset.amode; render(); return; }
   if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
-  if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"&&S.view!=="signal"){ location.hash="issues"; } render(); return; }
-  if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
+  if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"){ location.hash="issues"; } render(); return; }
+  if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=S.onlyRed=false; render(); return; }
   if(t.id==="showClosed"){ S.closed=!S.closed; render(); return; }
   if(t.dataset.open){ openIssue(t.dataset.open); return; }
   if(t.dataset.tmode){ S.tmode=t.dataset.tmode; render(); return; }
@@ -1030,6 +1153,12 @@ async function handle(act,t){
   if(act==="close"||act==="reopen"){ if(await patch("issues/"+id,{status:act==="close"?"closed":"open"})) toast(act==="close"?"완료로 옮겼어요":"다시 열었어요"); return; }
   if(act==="lv"){ await patch("issues/"+id,{level:t.dataset.lv}); return; }
   // 품질회의: 종결/다시 열기, 우리 팀 요청 완료/대기 — 손으로 바꾼 것은 메일 정리가 덮어쓰지 않는다(stageManual, doneManual).
+  // 확인 필요: "맞음" = [추정] 표시를 지우고 확정, 추적 "확인 완료" = checkedAt 기록. 협력사 회신 "완료".
+  if(act==="ckdef"){ const k=t.dataset.kind; const x=S[k].find(y=>y.id===id); if(!x) return; const up={aiDraft:false,checkedAt:new Date().toISOString()};
+    GUESS_F.forEach(f=>{ if(String(x[f]||"").includes("[추정]")) up[f]=String(x[f]).replace(/\s*\[추정\]\s*/g," ").trim(); });
+    if(await patch(k+"/"+id,up)) toast("확정했어요"); return; }
+  if(act==="cktrace"){ if(await patch("trace/"+id,{checkedAt:new Date().toISOString()})) toast("확인 완료로 표시했어요"); return; }
+  if(act==="swdone"){ if(await patch("supwait/"+id,{status:"done",doneManual:true,doneAt:new Date().toISOString().slice(0,10)})) toast("완료로 옮겼어요"); return; }
   if(act==="qclose"){ const a=S.qm.find(x=>x.id===id); if(!a) return; const close=a.stage!=="종결";
     const stage = close ? "종결" : (a.stageBefore && a.stageBefore!=="종결" ? a.stageBefore : "대책");
     if(await patch("qmeet/"+id,{stage, stageManual:true, stageBefore: close ? (a.stage||"상정") : "", closedAt: close?new Date().toISOString().slice(0,10):""})) toast(close?"종결로 옮겼어요":"다시 열었어요"); return; }
@@ -1098,7 +1227,7 @@ $("#aSave").addEventListener("click",async()=>{
 /* ---------- data ---------- */
 async function loadWeb(){
   try{ const r=await fetch(WEB,{cache:"no-store"}); if(!r.ok) throw new Error(String(r.status)); const d=await r.json();
-    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]); setThumbs(d.thumbs||[]);
+    S.issues=d.issues||[]; S.asks=d.asks||[]; S.trace=d.trace||[]; S.iqc=d.iqc||[]; S.field=d.field||[]; S.meta=d.meta||null; S.exportedAt=d.exportedAt||""; setY(d.ylink||{}); setQm(d.qmeet||[]); setThumbs(d.thumbs||[]); S.sw=d.supwait||[];
     S.briefs=(d.briefs||[]).slice().sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,30);
     S.loadErr=false;
   }catch(e){ S.loadErr=true; }
@@ -1131,6 +1260,7 @@ async function boot(){
     db.collection("iqc").onSnapshot(s=>{ S.iqc=conv(s); render(); },err);
     db.collection("field").onSnapshot(s=>{ S.field=conv(s); render(); },err);
     db.collection("briefs").orderBy("at","desc").limit(30).onSnapshot(s=>{ S.briefs=conv(s); render(); },err);
+    db.collection("supwait").onSnapshot(s=>{ S.sw=conv(s); render(); },()=>{});
     db.collection("thumbs").onSnapshot(s=>{ setThumbs(conv(s)); render(); },()=>{});
     db.collection("qmeet").onSnapshot(s=>{ setQm(conv(s)); render(); },()=>{});
     db.doc("meta/state").onSnapshot(s=>{ S.meta=s.exists?s.data():null; render(); },err);
