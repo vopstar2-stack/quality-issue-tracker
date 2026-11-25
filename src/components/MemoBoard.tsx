@@ -166,8 +166,8 @@ export default function MemoBoard({
     }`;
 
   return (
-    <div className="flex min-h-[calc(100dvh-25px)] w-full">
-      <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-4 md:flex dark:border-neutral-800 dark:bg-neutral-950">
+    <div className="@container flex min-h-[calc(100dvh-25px)] w-full">
+      <aside className="hidden w-60 shrink-0 flex-col gap-1 border-r border-neutral-200 bg-white p-4 @2xl:flex dark:border-neutral-800 dark:bg-neutral-950">
         <button
           type="button"
           onClick={startNew}
@@ -246,14 +246,14 @@ export default function MemoBoard({
       </aside>
 
       <section className="min-w-0 flex-1 p-4 sm:p-6">
-        <div className="mb-4 flex flex-wrap items-center gap-2 md:hidden">
+        <div className="mb-4 flex flex-wrap items-center gap-2 @2xl:hidden">
           <button type="button" onClick={startNew} className={`rounded-full px-4 py-1.5 text-sm font-semibold ${ACCENT}`}>
             메모 쓰기
           </button>
         </div>
 
         <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-neutral-200 pb-4 dark:border-neutral-800">
-          <div className="flex min-w-0 flex-wrap gap-2 md:hidden">
+          <div className="flex min-w-0 flex-wrap gap-2 @2xl:hidden">
             <button type="button" onClick={() => setFilter({ type: "all" })} className={chip(filter.type === "all")}>
               전체
             </button>
@@ -326,7 +326,7 @@ export default function MemoBoard({
           <div
             className={
               view === "grid"
-                ? "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
+                ? "grid grid-cols-1 gap-4 @lg:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4"
                 : "flex flex-col gap-3"
             }
           >
