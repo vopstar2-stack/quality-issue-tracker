@@ -142,6 +142,17 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .rsteps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
 .rsteps i.on{background:var(--accent)}
 .ysec{font-size:14px;margin:20px 0 6px;display:flex;gap:8px;align-items:baseline}
+/* 통합 검색 결과: 모든 탭을 한 번에 찾아 묶어서 보여 준다 */
+.hits{background:var(--panel);border:1px solid var(--accent);border-radius:12px;box-shadow:var(--shadow);padding:10px 14px;margin-bottom:12px}
+.hits h3{margin:0 0 6px;font-size:13px;display:flex;gap:8px;align-items:baseline}
+.hits .hg{margin-top:8px}
+.hits .hg>b{font-size:12px;color:var(--muted);font-weight:600}
+.hits .hr{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:2px 10px;align-items:baseline;padding:5px 6px;border-radius:7px;cursor:pointer}
+.hits .hr:hover{background:var(--soft)}
+.hits .hr .t{font-weight:600;font-size:13px;overflow-wrap:anywhere}
+.hits .hr .s{grid-column:2/-1;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.hits .hr .d{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap}
+.hits mark{background:var(--amber-bg);color:inherit;border-radius:2px;padding:0 1px}
 /* 품질회의 */
 .qhead{background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 16px;margin-bottom:10px;display:flex;flex-wrap:wrap;gap:6px 24px;align-items:baseline}
 .qhead .big{font-size:17px;font-weight:600}
@@ -298,6 +309,7 @@ dialog textarea{min-height:200px;resize:vertical}
     <button class="chip" id="showClosed" aria-pressed="false">완료 포함</button>
   </div>
 
+  <section id="hits" class="hits" hidden></section>
   <section id="v-issues"></section>
   <section id="v-signal" hidden></section>
   <section id="v-asks" hidden></section>
@@ -374,10 +386,47 @@ function visibleIssues(){
     if(S.proj && i.project!==S.proj) return false;
     if(S.onlyNew && !i.isNew) return false;
     if(S.onlyDue){ const n=dday(i.due); if(n==null||n>3) return false; }
-    if(q){ const hay=[i.title,i.summary,i.nextAction,(i.people||[]).join(" "),(i.mails||[]).map(m=>m.from+" "+m.subject+" "+m.gist).join(" ")].join(" ").toLowerCase(); if(!hay.includes(q)) return false; }
+    if(q && !hitTest(hayIssue(i),{raw:q,c:compactQ(q)})) return false;
     return true;
   }).sort((a,b)=>{ const o={red:0,yellow:1,white:2}; return (o[a.level]-o[b.level]) || ((dday(a.due)??999)-(dday(b.due)??999)) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
 }
+
+/* ---------- 통합 검색: 검색어가 있으면 어느 탭에 있든 모든 데이터를 찾아 위에 묶어 보여 준다 ---------- */
+const normQ = s => String(s||"").toLowerCase();
+const compactQ = s => normQ(s).replace(/[^0-9a-z가-힣]/g,"");
+function hitTest(hay,q){ const h=normQ(hay); if(h.includes(q.raw)) return true; return q.c.length>=4 && compactQ(hay).includes(q.c); }
+function hayIssue(i){ const tr=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)).map(t=>t.code).join(" ");
+  return [i.title,i.summary,i.nextAction,(i.people||[]).join(" "),(i.mails||[]).map(m=>m.from+" "+m.subject+" "+m.gist).join(" "),tr].join(" "); }
+const hayDef = (k,x) => DEF[k].fields.map(f=>f[0]==="#"?"":x[f[0]]).concat([x.issueId,(x.mails||[]).map(m=>m.subject).join(" ")]).join(" ");
+const hayTrace = t => [t.code,t.model,t.partNo,t.partName,t.supplier,t.parentSn,t.site,t.lot,t.note,(t.events||[]).map(e=>e.type+" "+e.text).join(" ")].join(" ");
+const hayQm = a => [a.title,a.sn,a.partSn,a.site,a.product,a.symptom,a.cause,a.action,a.raisedBy,a.lastWhat,(a.events||[]).map(e=>e.by+" "+e.what).join(" "),(a.asksMine||[]).map(x=>x.what).join(" ")].join(" ");
+const hayAsk = a => [a.what,a.to,a.lastNote].join(" ");
+function markQ(s,q){ const t=esc(s); if(!q.raw) return t; const i=normQ(s).indexOf(q.raw); return i<0?t:esc(s.slice(0,i))+"<mark>"+esc(s.slice(i,i+q.raw.length))+"</mark>"+esc(s.slice(i+q.raw.length)); }
+function renderHits(){
+  const el=$("#hits"); const raw=normQ(S.q.trim());
+  if(raw.length<2||S.view==="log"){ el.hidden=true; el.innerHTML=""; return; }
+  const q={raw, c:compactQ(raw)};
+  const G=[
+    ["이슈", S.issues.filter(i=>hitTest(hayIssue(i),q)).sort((a,b)=>String(b.updatedAt).localeCompare(String(a.updatedAt))),
+      i=>`<div class="hr" data-open="${esc(i.id)}"><span class="pill ${(LV[i.level]||LV.white).c}">${(LV[i.level]||LV.white).t}</span><span class="t">${markQ(i.title,q)}</span><span class="d">${esc(ago(i.updatedAt))}</span><span class="s">${esc(i.nextAction||i.summary||"")}</span></div>`],
+    ["추적 (S/N·부품)", S.trace.filter(t=>hitTest(hayTrace(t),q)).sort((a,b)=>String(tLast(b)).localeCompare(String(tLast(a)))),
+      t=>`<div class="hr" data-act="trace" data-id="${esc(t.id)}"><span class="pill p-white">${esc(KIND[t.kind]||t.kind)}</span><span class="t code">${markQ(t.code,q)}</span><span class="d">${esc(dshort(tLast(t)))}</span><span class="s">${esc([t.model,t.partName,t.site].filter(Boolean).join(" · "))}${(t.events||[]).length?" — "+esc((t.events[t.events.length-1]||{}).text||""):""}</span></div>`],
+    ["필드 불량", S.field.filter(x=>hitTest(hayDef("field",x),q)).sort((a,b)=>String(b.date).localeCompare(String(a.date))),
+      x=>`<div class="hr" data-def="${esc(x.id)}" data-kind="field"><span class="pill p-white">필드</span><span class="t">${markQ([x.sn,x.model].filter(Boolean).join(" · ")||x.symptom||"",q)}</span><span class="d">${esc(dshort(x.date))}</span><span class="s">${esc([x.site,x.symptom].filter(Boolean).join(" — "))}</span></div>`],
+    ["수입검사 불량", S.iqc.filter(x=>hitTest(hayDef("iqc",x),q)).sort((a,b)=>String(b.date).localeCompare(String(a.date))),
+      x=>`<div class="hr" data-def="${esc(x.id)}" data-kind="iqc"><span class="pill p-white">수입</span><span class="t">${markQ([x.partNo,x.partName].filter(Boolean).join(" "),q)}</span><span class="d">${esc(dshort(x.date))}</span><span class="s">${esc([x.supplier,x.defect].filter(Boolean).join(" — "))}</span></div>`],
+    ["품질회의", S.qm.filter(a=>hitTest(hayQm(a),q)).sort((a,b)=>String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt))),
+      a=>`<div class="hr" data-qopen="${esc(a.id)}"><span class="pill ${a.stage==="종결"?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span><span class="t">${markQ(a.title,q)}</span><span class="d">${esc(dshort(a.lastAt||a.raisedAt))}</span><span class="s">${esc(a.lastWhat||"")}</span></div>`],
+    ["부탁", S.asks.filter(a=>hitTest(hayAsk(a),q)),
+      a=>`<div class="hr" data-go="asks"><span class="pill p-white">${esc((STAGES.find(s=>s[0]===a.stage)||[,""])[1])}</span><span class="t">${markQ(a.what,q)}</span><span class="d">${esc(a.to||"")}</span></div>`]
+  ].filter(g=>g[1].length);
+  const n=G.reduce((s,g)=>s+g[1].length,0);
+  el.hidden=false;
+  el.innerHTML=`<h3>"${esc(S.q.trim())}" 전체 검색 <span class="note">${n}건</span></h3>`+(n?G.map(([t,xs,row])=>`<div class="hg"><b>${t} ${xs.length}</b>${xs.slice(0,12).map(row).join("")}${xs.length>12?`<div class="note">외 ${xs.length-12}건은 해당 탭에서 보세요</div>`:""}</div>`).join(""):`<div class="note">어디에서도 찾지 못했어요. 철자나 일부만 넣어 보세요.</div>`);
+}
+function openQm(id){ const a=S.qm.find(x=>x.id===id); if(!a) return;
+  S.qmode="all"; S.qstage=a.stage==="종결"?"종결":""; S.openIds.add(id); S.view="qmeet"; if(location.hash!=="#qmeet") history.pushState(null,"","#qmeet"); render();
+  requestAnimationFrame(()=>{ const el=document.querySelector(`#v-qmeet .issue[data-id="${CSS.escape(id)}"]`); if(el) el.scrollIntoView({block:"start",behavior:"smooth"}); }); }
 
 /* ---------- render ---------- */
 function render(){
@@ -418,8 +467,9 @@ function render(){
   const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet";
   $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
   $("#projChips").hidden = $("#showClosed").hidden = $("#onlyNew").hidden = document.querySelector('[data-proj=""]').hidden = plain;
-  $("#q").placeholder = plain ? "S/N, LOT, 품번, 모델, 협력사, 현상 검색" : "제목, 사람, 품번, S/N 검색";
+  $("#q").placeholder = "전체 검색 — S/N, 품번, LOT, 제목, 사람, 협력사…";
   ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
+  renderHits();
 }
 
 // 브리핑 한 줄을 "제목(굵게) + 설명(회색)"으로 나눈다: 앞쪽 ":" 또는 " — " 를 기준으로.
@@ -927,6 +977,11 @@ document.addEventListener("click",e=>{
   const dr=e.target.closest("[data-def]"); if(dr){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
   const ds=e.target.closest("[data-dstat]"); if(ds){ S.dstat=ds.dataset.dstat; render(); return; }
   const bt=e.target.closest("[data-btab]"); if(bt){ location.hash=bt.dataset.btab; return; }
+  const hr=e.target.closest("#hits .hr"); if(hr){
+    if(hr.dataset.qopen){ openQm(hr.dataset.qopen); return; }
+    if(hr.dataset.act==="trace"){ S.tsel=hr.dataset.id; S.tmode="serial"; S.view="trace"; if(location.hash!=="#trace") history.pushState(null,"","#trace"); render(); return; }
+    if(hr.dataset.go){ location.hash=hr.dataset.go; return; }
+  }
   const t=e.target.closest("button,[data-open],a[data-act]"); if(!t) return;
   if(t.tagName==="A") e.preventDefault();
   if(t.dataset.go){ S.onlyNew=!!t.dataset.new; S.onlyDue=!!t.dataset.due; if(t.dataset.rma) S.fmode="rma"; location.hash=t.dataset.go; route(); return; }
