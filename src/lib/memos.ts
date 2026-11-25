@@ -9,6 +9,7 @@ type MemoRow = Omit<Memo, "created_at" | "updated_at"> & {
 function toMemo(row: MemoRow): Memo {
   return {
     ...row,
+    images: row.images ?? [],
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
     updated_at: row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at,
   };
@@ -17,6 +18,11 @@ function toMemo(row: MemoRow): Memo {
 export async function listMemos(): Promise<Memo[]> {
   const rows = await query<MemoRow>("SELECT * FROM memos ORDER BY created_at DESC, id DESC");
   return rows.map(toMemo);
+}
+
+export async function getMemo(id: number): Promise<Memo | undefined> {
+  const rows = await query<MemoRow>("SELECT * FROM memos WHERE id = $1", [id]);
+  return rows[0] ? toMemo(rows[0]) : undefined;
 }
 
 export async function listMemoFolders(): Promise<string[]> {
@@ -28,18 +34,19 @@ export async function createMemo(input: {
   content: string;
   folder: string;
   important: boolean;
+  images: string[];
 }): Promise<Memo> {
   await query("INSERT INTO memo_folders (name) VALUES ($1) ON CONFLICT DO NOTHING", [input.folder]);
   const rows = await query<MemoRow>(
-    "INSERT INTO memos (content, folder, important) VALUES ($1, $2, $3) RETURNING *",
-    [input.content, input.folder, input.important],
+    "INSERT INTO memos (content, folder, important, images) VALUES ($1, $2, $3, $4) RETURNING *",
+    [input.content, input.folder, input.important, input.images],
   );
   return toMemo(rows[0]);
 }
 
 export async function updateMemo(
   id: number,
-  patch: { content?: string; folder?: string; important?: boolean },
+  patch: { content?: string; folder?: string; important?: boolean; images?: string[] },
 ): Promise<Memo | undefined> {
   if (patch.folder !== undefined) {
     await query("INSERT INTO memo_folders (name) VALUES ($1) ON CONFLICT DO NOTHING", [patch.folder]);
@@ -49,16 +56,18 @@ export async function updateMemo(
        content = COALESCE($2, content),
        folder = COALESCE($3, folder),
        important = COALESCE($4, important),
+       images = COALESCE($5, images),
        updated_at = now()
      WHERE id = $1
      RETURNING *`,
-    [id, patch.content ?? null, patch.folder ?? null, patch.important ?? null],
+    [id, patch.content ?? null, patch.folder ?? null, patch.important ?? null, patch.images ?? null],
   );
   return rows[0] ? toMemo(rows[0]) : undefined;
 }
 
-export async function deleteMemo(id: number): Promise<void> {
-  await query("DELETE FROM memos WHERE id = $1", [id]);
+export async function deleteMemo(id: number): Promise<Memo | undefined> {
+  const rows = await query<MemoRow>("DELETE FROM memos WHERE id = $1 RETURNING *", [id]);
+  return rows[0] ? toMemo(rows[0]) : undefined;
 }
 
 export async function createMemoFolder(name: string): Promise<void> {

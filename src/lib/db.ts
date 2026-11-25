@@ -140,6 +140,7 @@ async function ensureSchema(pool: Pool): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
+    ALTER TABLE memos ADD COLUMN IF NOT EXISTS images TEXT[] NOT NULL DEFAULT '{}';
 
     -- 없앤 '내 할 일' 앱이 쓰던 테이블 정리 (2026-11-18)
     DROP TABLE IF EXISTS my_memos, my_item_state, push_subscriptions, app_status;

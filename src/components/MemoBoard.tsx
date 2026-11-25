@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { resizeImageFile } from "@/lib/image-resize";
 import { DEFAULT_MEMO_FOLDER, type Memo } from "@/lib/types";
 
 // 카드/목록 보기 선택을 브라우저에 기억한다(서버 렌더 때는 카드 보기로 시작).
@@ -23,6 +24,7 @@ function readView(): "grid" | "list" {
 
 type Filter = { type: "all" } | { type: "important" } | { type: "folder"; name: string };
 type Editing = { mode: "new"; folder: string; important: boolean } | { mode: "edit"; memo: Memo };
+type Photo = { key: string; preview: string; url?: string; file?: File };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("ko-KR", {
@@ -339,7 +341,7 @@ export default function MemoBoard({
                 <div className="flex items-start gap-2">
                   <p
                     className={`min-w-0 flex-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-neutral-800 dark:text-neutral-200 ${
-                      view === "grid" ? "line-clamp-6" : "line-clamp-3"
+                      view === "grid" ? (m.images.length ? "line-clamp-3" : "line-clamp-6") : "line-clamp-3"
                     }`}
                   >
                     {m.content}
@@ -358,8 +360,23 @@ export default function MemoBoard({
                     <StarIcon filled={m.important} />
                   </button>
                 </div>
+                {m.images.length > 0 && (
+                  <div className="mt-2 flex gap-1.5">
+                    {m.images.slice(0, 4).map((url, i) => (
+                      <div key={url} className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-neutral-100 dark:bg-neutral-900">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                        {i === 3 && m.images.length > 4 && (
+                          <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-xs font-semibold text-white">
+                            +{m.images.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-auto border-t border-neutral-100 pt-3 text-xs text-neutral-400 dark:border-neutral-800">
-                  {m.folder} · {formatDate(sort === "created" ? m.created_at : m.updated_at)}
+                  {m.folder} ·{formatDate(sort === "created" ? m.created_at : m.updated_at)}
                 </div>
               </article>
             ))}
@@ -404,9 +421,19 @@ function Editor({
   const [content, setContent] = useState(existing?.content ?? "");
   const [folder, setFolder] = useState(existing?.folder ?? (editing.mode === "new" ? editing.folder : DEFAULT_MEMO_FOLDER));
   const [important, setImportant] = useState(existing?.important ?? (editing.mode === "new" ? editing.important : false));
+  // 이미 저장된 사진(url)과, 저장 누를 때 올릴 새 사진(file)을 한 목록으로 다룬다.
+  const [photos, setPhotos] = useState<Photo[]>(() =>
+    (existing?.images ?? []).map((url) => ({ key: url, preview: url, url })),
+  );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const photosRef = useRef(photos);
+
+  useEffect(() => {
+    photosRef.current = photos;
+  }, [photos]);
 
   useEffect(() => {
     const el = textareaRef.current;
@@ -414,20 +441,61 @@ function Editor({
       el.focus();
       el.setSelectionRange(el.value.length, el.value.length);
     }
+    // 창을 닫을 때 새 사진 미리보기 주소를 정리한다.
+    return () => photosRef.current.forEach((p) => p.file && URL.revokeObjectURL(p.preview));
   }, []);
 
+  async function addFiles(files: File[]) {
+    const images = files.filter((f) => f.type.startsWith("image/"));
+    if (images.length === 0) return;
+    setError(null);
+    try {
+      // 저장 공간을 아끼려고 작고 낮은 화질로 줄인다.
+      const added = await Promise.all(
+        images.map(async (file): Promise<Photo> => {
+          const blob = await resizeImageFile(file, 1024, 0.6);
+          const base = file.name.replace(/\.[^.]+$/, "") || "photo";
+          const resized = new File([blob], `${base}.jpg`, { type: "image/jpeg" });
+          const preview = URL.createObjectURL(blob);
+          return { key: preview, preview, file: resized };
+        }),
+      );
+      setPhotos((prev) => [...prev, ...added]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "사진을 처리하지 못했습니다.");
+    }
+  }
+
+  function removePhoto(key: string) {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.key === key);
+      if (target?.file) URL.revokeObjectURL(target.preview);
+      return prev.filter((p) => p.key !== key);
+    });
+  }
+
+  async function uploadPhoto(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file, file.name);
+    const res = await fetch("/api/memos/images", { method: "POST", body: formData });
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.url) throw new Error(data?.error ?? "사진 업로드에 실패했습니다.");
+    return data.url;
+  }
+
   async function save() {
-    if (!content.trim()) {
-      setError("내용을 입력해주세요.");
+    if (!content.trim() && photos.length === 0) {
+      setError("내용을 입력하거나 사진을 넣어주세요.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
+      const images = await Promise.all(photos.map((p) => (p.url ? p.url : uploadPhoto(p.file!))));
       const res = await fetch(existing ? `/api/memos/${existing.id}` : "/api/memos", {
         method: existing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, folder, important }),
+        body: JSON.stringify({ content, folder, important, images }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "저장에 실패했습니다.");
@@ -465,9 +533,44 @@ function Editor({
           ref={textareaRef}
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          placeholder="오늘 한 일, 메모할 내용을 자유롭게 적으세요."
-          className="min-h-[50dvh] w-full flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-100"
+          onPaste={(e) => {
+            const files = Array.from(e.clipboardData.items)
+              .filter((it) => it.kind === "file" && it.type.startsWith("image/"))
+              .map((it) => it.getAsFile())
+              .filter((f): f is File => f !== null);
+            if (files.length > 0) {
+              e.preventDefault();
+              addFiles(files);
+            }
+          }}
+          placeholder="오늘 한 일, 메모할 내용을 자유롭게 적으세요. (사진은 Ctrl+V로 붙여넣거나 아래 '사진' 버튼)"
+          className={`w-full flex-1 resize-none bg-transparent text-[15px] leading-relaxed text-neutral-900 placeholder:text-neutral-400 focus:outline-none dark:text-neutral-100 ${
+            photos.length ? "min-h-[30dvh]" : "min-h-[50dvh]"
+          }`}
         />
+        {photos.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {photos.map((p) => (
+              <div
+                key={p.key}
+                className="group/photo relative h-20 w-20 overflow-hidden rounded-lg border border-neutral-200 dark:border-neutral-700"
+              >
+                <a href={p.preview} target="_blank" rel="noopener noreferrer" title="크게 보기">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.preview} alt="첨부 사진" className="h-full w-full object-cover" />
+                </a>
+                <button
+                  type="button"
+                  onClick={() => removePhoto(p.key)}
+                  className="absolute right-1 top-1 rounded-full bg-black/60 px-1.5 text-xs leading-5 text-white sm:opacity-0 sm:group-hover/photo:opacity-100"
+                  aria-label="사진 삭제"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-neutral-100 pt-3 dark:border-neutral-800">
           <select
@@ -493,6 +596,29 @@ function Editor({
           >
             <StarIcon filled={important} /> 중요
           </button>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1 rounded-md border border-neutral-300 px-2.5 py-1.5 text-sm text-neutral-500 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth={2} strokeLinejoin="round">
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="9" cy="11" r="1.5" />
+              <path d="m21 16-5-5-7 7" />
+            </svg>
+            사진{photos.length > 0 ? ` ${photos.length}` : ""}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              addFiles(Array.from(e.target.files ?? []));
+              e.target.value = "";
+            }}
+          />
           <span className="hidden text-xs text-neutral-400 sm:inline">Ctrl+Enter 저장 · Esc 닫기</span>
           <div className="ml-auto flex gap-2">
             {existing && (

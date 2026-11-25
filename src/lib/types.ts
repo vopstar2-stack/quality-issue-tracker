@@ -115,6 +115,8 @@ export interface Memo {
   content: string;
   folder: string;
   important: boolean;
+  /** 저화질로 줄여 Blob에 올린 첨부 사진 주소들 */
+  images: string[];
   created_at: string;
   updated_at: string;
 }
