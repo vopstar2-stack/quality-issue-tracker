@@ -52,13 +52,6 @@ export default function RootLayout({
                 </svg>
                 이슈 목록
               </Link>
-              <Link href="/tank-replacements" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
-                  <path d="M12 3v6" />
-                  <path d="M8 9h8l1.5 4.5a4.5 4.5 0 0 1-1 4.9l-.5.5a4 4 0 0 1-2.8 1.1h-2.4a4 4 0 0 1-2.8-1.1l-.5-.5a4.5 4.5 0 0 1-1-4.9L8 9Z" />
-                </svg>
-                Tank 누유대체
-              </Link>
               <Link href="/view/crm" className={navItemClass}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <rect x="4" y="3" width="16" height="18" rx="1" />
@@ -99,7 +92,7 @@ export default function RootLayout({
         {/* 넓은 화면(lg 이상): 왼쪽 = 클비서 메일 상황판(고정, 메뉴를 눌러도 그대로), 오른쪽 = 메뉴로 바뀌는 화면 (2026-11-25).
             레이아웃은 페이지를 옮겨도 다시 그려지지 않아서 왼쪽 상황판은 보던 자리 그대로 남는다. */}
         <div className="flex flex-1">
-          <aside className="sticky top-[25px] hidden h-[calc(100dvh-25px)] w-1/2 shrink-0 border-r border-neutral-200 lg:block dark:border-neutral-800">
+          <aside className="sticky top-[25px] hidden h-[calc(100dvh-25px)] w-[60%] shrink-0 border-r border-neutral-200 lg:block dark:border-neutral-800">
             <iframe title="메일 상황판" src="/mail-dashboard.html" className="block h-full w-full border-0 bg-white" />
           </aside>
           <main className="flex min-w-0 flex-1 flex-col">{children}</main>
