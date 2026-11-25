@@ -120,6 +120,14 @@ async function ensureSchema(pool: Pool): Promise<void> {
 
     -- 메일 상황판 '내 확인 기록'을 폰(웹 사본)에서 쓴 것. 사진은 낮은 화질 JPEG data URI로
     -- data 안에 같이 들어 있다. 사내 PC의 메일 정리가 읽어 claude.ai 상황판 DB(notes)로 옮긴다.
+    -- 메일 상황판 '요청' 카드의 단계 이동을 폰(웹 사본)에서 한 기록. 요청 1개당 1행(마지막 이동).
+    -- 사내 PC의 메일 정리가 읽어 claude.ai 상황판 DB(asks.stage)로 옮긴다.
+    CREATE TABLE IF NOT EXISTS mail_ask_moves (
+      ask_id TEXT PRIMARY KEY,
+      stage TEXT NOT NULL,
+      moved_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS mail_notes (
       id TEXT PRIMARY KEY,
       data JSONB NOT NULL,
