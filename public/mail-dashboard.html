@@ -937,6 +937,7 @@ function openNote(ctx,n){
   ["#nDate","#nWhat","#nFile"].forEach(s=>{ $(s).disabled=ro; });
   $("#nSave").hidden=ro; $("#nMsg").textContent=""; $("#nFile").value="";
   $("#nDel").hidden = !n || ro;   // 삭제는 PC에서, 내가 쓴 기록만 (예전 대장 기록 제외)
+  const db_=$("#nDel"); delete db_.dataset.arm; db_.textContent="삭제"; db_.style.background=""; db_.style.color="var(--red)";
   const iss = (n?n.issueId:ctx.issueId); const is=iss&&byId(iss);
   $("#nWhere").textContent = [is?"이슈: "+is.title:"", (n?n.defId:ctx.defId)?"불량 대장 "+(n?n.defId:ctx.defId):"", ro&&n&&n.source==="history"?"불량품 히스토리 대장에서 옮겨 온 예전 기록이에요.":"", !db&&!ro?"폰에서 저장하면 다음 메일 정리 때 PC 상황판에도 합쳐져요.":""].filter(Boolean).join(" · ");
   renderNPrev(); $("#dlgNote").showModal();
@@ -967,8 +968,11 @@ $("#nFile").addEventListener("change",async e=>{
 });
 $("#nDel").addEventListener("click",async()=>{
   if(!ncur||!ncur.id||!db) return;
-  if(!confirm("이 기록을 지울까요? 사진도 함께 지워져요.")) return;
-  const msg=$("#nMsg"); $("#nDel").disabled=true;
+  // 상황판은 브라우저 확인창(confirm)이 막혀 있어서, 버튼을 두 번 누르게 해 실수로 지우는 걸 막는다.
+  const msg=$("#nMsg"), b=$("#nDel");
+  if(!b.dataset.arm){ b.dataset.arm="1"; b.textContent="정말 삭제"; b.style.background="var(--red)"; b.style.color="#fff";
+    msg.className="msg err"; msg.textContent="한 번 더 누르면 지워져요 (사진 포함)"; return; }
+  b.disabled=true;
   try{ await db.doc("notes/"+ncur.id).set({id:ncur.id,deleted:true,deletedAt:new Date().toISOString(),date:(ncur.n||{}).date||""});
     $("#dlgNote").close(); toast("기록을 지웠어요"); render(); if($("#dlgDef").open&&dcur) fillDefNotes(); }
   catch(err){ msg.className="msg err"; msg.textContent="지우지 못했어요: "+(err.code||"오류"); }
