@@ -106,3 +106,15 @@ export interface TankReplacementWithReceipts extends TankReplacement {
   remaining_quantity: number | null;
   status: TankReplacementStatus;
 }
+
+export const DEFAULT_MEMO_FOLDER = "내 메모";
+
+/** 메인 화면의 자유 형식 메모(업무일지). 제목/항목 없이 본문 한 덩어리로 쓴다. */
+export interface Memo {
+  id: number;
+  content: string;
+  folder: string;
+  important: boolean;
+  created_at: string;
+  updated_at: string;
+}

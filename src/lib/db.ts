@@ -126,6 +126,21 @@ async function ensureSchema(pool: Pool): Promise<void> {
       created_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
+    -- 메인 화면 메모(업무일지). 제목/항목 없이 본문 한 덩어리 + 폴더 + 중요 표시.
+    CREATE TABLE IF NOT EXISTS memo_folders (
+      name TEXT PRIMARY KEY,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+    INSERT INTO memo_folders (name) VALUES ('내 메모') ON CONFLICT DO NOTHING;
+    CREATE TABLE IF NOT EXISTS memos (
+      id SERIAL PRIMARY KEY,
+      content TEXT NOT NULL DEFAULT '',
+      folder TEXT NOT NULL DEFAULT '내 메모',
+      important BOOLEAN NOT NULL DEFAULT false,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     -- 없앤 '내 할 일' 앱이 쓰던 테이블 정리 (2026-11-18)
     DROP TABLE IF EXISTS my_memos, my_item_state, push_subscriptions, app_status;
   `);

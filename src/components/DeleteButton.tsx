@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function DeleteButton({
   id,
   basePath = "/api/issues",
-  redirectTo = "/",
+  redirectTo = "/issues",
   label = "이슈 삭제 확인",
 }: {
   id: number;
