@@ -302,8 +302,6 @@ dialog textarea{min-height:200px;resize:vertical}
   </nav>
 
   <div class="filters" id="filters">
-    <button class="chip" data-proj="" aria-pressed="true">전체</button>
-    <span id="projChips" style="display:contents"></span>
     <input id="q" type="search" placeholder="제목, 사람, 품번, S/N 검색" aria-label="검색">
     <button class="chip" id="onlyNew" aria-pressed="false">새 소식만 <span id="k-new">0</span></button>
     <button class="chip" id="showClosed" aria-pressed="false">완료 포함</button>
@@ -453,9 +451,7 @@ function render(){
   $("#c-issues").textContent=open.length;
   $("#c-asks").textContent=S.asks.filter(a=>a.stage!=="done").length;
 
-  const projs=[...new Set(S.issues.map(i=>i.project).filter(Boolean))].sort();
-  $("#projChips").innerHTML=projs.map(p=>`<button class="chip" data-proj="${esc(p)}" aria-pressed="${S.proj===p}">${esc(p)}</button>`).join("");
-  document.querySelector('[data-proj=""]').setAttribute("aria-pressed", String(!S.proj));
+  // 프로젝트 칩 줄은 2026-11-25 사용자 요청으로 뺐다 (전체 검색으로 대신). 카드의 프로젝트 표시는 남겨 둔다.
   $("#showClosed").setAttribute("aria-pressed", String(S.closed));
 
   document.querySelectorAll("nav.tabs a").forEach(a=>a.setAttribute("aria-current", a.dataset.v===S.view?"page":"false"));
@@ -466,7 +462,7 @@ function render(){
   $("#filters").hidden = S.view==="log";
   const plain = S.view==="trace"||S.view==="iqc"||S.view==="field"||S.view==="ylink"||S.view==="qmeet";
   $("#c-qmeet").textContent=S.qm.filter(a=>a.stage!=="종결").length;
-  $("#projChips").hidden = $("#showClosed").hidden = $("#onlyNew").hidden = document.querySelector('[data-proj=""]').hidden = plain;
+  $("#showClosed").hidden = $("#onlyNew").hidden = plain;
   $("#q").placeholder = "전체 검색 — S/N, 품번, LOT, 제목, 사람, 협력사…";
   ({issues:renderIssues, signal:renderSignal, asks:renderAsks, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
   renderHits();
@@ -990,7 +986,6 @@ document.addEventListener("click",e=>{
   if(t.hasAttribute("data-qstage")){ S.qstage=S.qstage===t.dataset.qstage?"":t.dataset.qstage; render(); return; }
   if(t.id==="onlyNew"){ S.onlyNew=!S.onlyNew; if(S.view!=="issues"&&S.view!=="signal"){ location.hash="issues"; } render(); return; }
   if(t.id==="clearQuick"){ S.onlyNew=S.onlyDue=false; render(); return; }
-  if(t.hasAttribute("data-proj")&&t.classList.contains("chip")){ S.proj=t.dataset.proj; render(); return; }
   if(t.id==="showClosed"){ S.closed=!S.closed; render(); return; }
   if(t.dataset.open){ openIssue(t.dataset.open); return; }
   if(t.dataset.tmode){ S.tmode=t.dataset.tmode; render(); return; }
