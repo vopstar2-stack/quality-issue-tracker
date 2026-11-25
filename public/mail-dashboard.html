@@ -384,10 +384,8 @@ dialog textarea{min-height:200px;resize:vertical}
 
 <dialog id="dlgNote"><form method="dialog" id="fNote">
   <h3 id="nTitle">내 확인 기록</h3>
-  <div class="drow"><label>확인한 날<input id="nDate" type="date"></label><label>판정<select id="nVerdict"><option value="">선택</option><option>원인 확정</option><option>원인 아님</option><option>재현 안 됨</option><option>진행 중</option><option>처리 완료</option><option>참고</option></select></label></div>
-  <label>대상 S/N · 품번 · LOT (쉼표로 여러 개, 모르면 "미확인")<input id="nCodes" placeholder="예: 2697A04, RA82685101"></label>
-  <label>무엇을 확인했나<textarea id="nWhat" placeholder="예: 회수 탱크 분해 — 벨로우즈 체결부·토크 확인"></textarea></label>
-  <label>결과 · 판단 근거<textarea id="nResult" placeholder="예: 벨로우즈 가로 2mm 수축, 체결 토크 정상 → 벨로우즈 소재 문제로 판단"></textarea></label>
+  <label style="max-width:180px">작성 날짜<input id="nDate" type="date"></label>
+  <label>기록<textarea id="nWhat" style="min-height:180px" placeholder="확인한 내용을 자유롭게 적어 주세요."></textarea></label>
   <label>사진 (3장까지 · 낮은 화질로 줄여 저장)<input id="nFile" type="file" accept="image/*" multiple></label>
   <div class="thumbs" id="nPrev"></div>
   <div class="dfoot"><span class="msg" id="nMsg"></span><button value="cancel">닫기</button><button type="button" class="primary" id="nSave">저장</button></div>
@@ -913,7 +911,7 @@ function noteItem(n){
   const src = n.source==="history" ? `히스토리 대장 #${esc(n.histNo||"")}` : n.source==="phone" ? "폰에서 기록" : "";
   return `<div class="mnote" data-note="${esc(n.id)}" tabindex="0">
     <div class="mm"><span class="code">${esc(dshort(n.date))}</span>${n.verdict?`<span class="pill ${VERD[n.verdict]||"v-no"}">${esc(n.verdict)}</span>`:""}${(n.codes||[]).map(c=>{ const t=traceByCode(c); return t?`<button class="tchip" data-act="trace" data-id="${esc(t.id)}">${esc(c)}</button>`:`<span class="code">${esc(c)}</span>`; }).join("")}${src?`<span>${src}</span>`:""}</div>
-    <div class="mt">${esc(n.what||"")}</div>${n.result?`<div class="mr">${esc(n.result)}</div>`:""}
+    ${n.result?`<div class="mt">${esc(n.what||"")}</div><div class="mr">${esc(n.result)}</div>`:`<div class="mr" style="color:var(--ink);font-size:13px">${esc(n.what||"")}</div>`}
     ${(n.photos||[]).length?`<div class="thumbs">${n.photos.map((p,k)=>`<img src="${esc(p.d)}" alt="확인 사진" loading="lazy" data-nzoom="${esc(n.id)}" data-k="${k}" title="크게 보기">`).join("")}</div>`:""}
     ${(n.photoCount||0)>(n.photos||[]).length?`<div class="note">사진 ${n.photoCount}장은 PC 상황판에서 볼 수 있어요</div>`:""}
   </div>`;
@@ -930,10 +928,9 @@ function openNote(ctx,n){
   ncur={id:n?n.id:null, n, ctx:ctx||{}, photos:n?(n.photos||[]).slice():[], ro};
   $("#nTitle").textContent = n ? (ro?"내 확인 기록 (보기)":"내 확인 기록 고치기") : "내 확인 기록 추가";
   $("#nDate").value = n?n.date:new Date().toLocaleDateString("sv-SE");
-  $("#nVerdict").value = n?(n.verdict||""):"";
-  $("#nCodes").value = n?(n.codes||[]).join(", "):(ctx.codes||[]).join(", ");
-  $("#nWhat").value = n?(n.what||""):""; $("#nResult").value = n?(n.result||""):"";
-  ["#nDate","#nVerdict","#nCodes","#nWhat","#nResult","#nFile"].forEach(s=>{ $(s).disabled=ro; });
+  // 예전 형식(내용+결과 따로)으로 쓴 기록은 한 칸으로 합쳐 보여 준다.
+  $("#nWhat").value = n?[n.what,n.result].filter(Boolean).join("\n"):"";
+  ["#nDate","#nWhat","#nFile"].forEach(s=>{ $(s).disabled=ro; });
   $("#nSave").hidden=ro; $("#nMsg").textContent=""; $("#nFile").value="";
   const iss = (n?n.issueId:ctx.issueId); const is=iss&&byId(iss);
   $("#nWhere").textContent = [is?"이슈: "+is.title:"", (n?n.defId:ctx.defId)?"불량 대장 "+(n?n.defId:ctx.defId):"", ro&&n&&n.source==="history"?"불량품 히스토리 대장에서 옮겨 온 예전 기록이에요.":"", !db&&!ro?"폰에서 저장하면 다음 메일 정리 때 PC 상황판에도 합쳐져요.":""].filter(Boolean).join(" · ");
@@ -966,13 +963,15 @@ $("#nFile").addEventListener("change",async e=>{
 $("#nPrev").addEventListener("click",e=>{ const b=e.target.closest("[data-nrm]"); if(!b) return; ncur.photos.splice(Number(b.dataset.nrm),1); renderNPrev(); });
 $("#nSave").addEventListener("click",async()=>{
   const msg=$("#nMsg"); const what=$("#nWhat").value.trim(), date=$("#nDate").value;
-  const codes=[...new Set($("#nCodes").value.split(/[,\n;]+/).map(s=>s.trim()).filter(Boolean))];
-  if(!date){ msg.className="msg err"; msg.textContent="확인한 날을 넣어 주세요."; return; }
-  if(!what){ msg.className="msg err"; msg.textContent="무엇을 확인했는지 적어 주세요."; return; }
-  if(!codes.length){ msg.className="msg err"; msg.textContent="대상 S/N·품번·LOT을 적어 주세요. 모르면 \"미확인\"이라고 적으세요."; return; }
+  if(!date){ msg.className="msg err"; msg.textContent="작성 날짜를 넣어 주세요."; return; }
+  if(!what){ msg.className="msg err"; msg.textContent="기록을 적어 주세요."; return; }
   const now=new Date().toISOString(), c=ncur.ctx, o=ncur.n;
+  // 대상 S/N은 따로 묻지 않는다(2026-11-25 사용자 요청): 연 곳(이슈·불량 대장·추적)의 S/N을 자동으로 붙이고,
+  // 글 안에 적힌 S/N·품번처럼 보이는 코드도 함께 붙여 나중에 S/N으로 찾을 수 있게 한다.
+  const inText=(what.toUpperCase().match(/\b[A-Z]{0,5}[0-9][A-Z0-9-]{5,}\b/g)||[]).filter(x=>/\d{4}/.test(x));
+  const codes=[...new Set([...(o?o.codes||[]:c.codes||[]), ...inText])];
   const id = ncur.id || ("n-"+date.replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,8));
-  const data={id,date,codes,what,result:$("#nResult").value.trim(),verdict:$("#nVerdict").value,photos:ncur.photos,
+  const data={id,date,codes,what,result:"",verdict:o?o.verdict||"":"",photos:ncur.photos,
     issueId:o?o.issueId||"":c.issueId||"", defKind:o?o.defKind||"":c.defKind||"", defId:o?o.defId||"":c.defId||"",
     by:"김원수", source:o?o.source:(db?"pc":"phone"), createdAt:o?o.createdAt:now, updatedAt:now};
   $("#nSave").disabled=true; msg.className="msg"; msg.textContent="저장하는 중…";
