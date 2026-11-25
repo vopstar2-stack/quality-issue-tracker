@@ -111,6 +111,13 @@ async function ensureSchema(pool: Pool): Promise<void> {
         SELECT 1 FROM tank_replacement_receipts WHERE tank_replacement_id = tank_replacements.id
       );
 
+    -- 메일 상황판 브리핑을 폰(웹 사본)에서 '읽음' 처리한 기록. 사내 PC의 메일 정리가
+    -- 이걸 읽어 claude.ai 상황판 DB(briefs.readAt)로 옮긴다. 브리핑 1개당 1행.
+    CREATE TABLE IF NOT EXISTS mail_brief_reads (
+      brief_id TEXT PRIMARY KEY,
+      read_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     -- 없앤 '내 할 일' 앱이 쓰던 테이블 정리 (2026-11-18)
     DROP TABLE IF EXISTS my_memos, my_item_state, push_subscriptions, app_status;
   `);
