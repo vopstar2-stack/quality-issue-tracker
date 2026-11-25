@@ -167,6 +167,9 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .qasks{margin:8px 0;padding:0;list-style:none}
 .qasks li{font-size:13px;padding:3px 0}
 .qbtn{padding:1px 8px;font-size:11.5px;margin-left:4px}
+.tt tr.qrow{cursor:pointer}
+.tt tr.qrow:hover td{background:var(--soft)}
+.tt tr.qrow td:nth-child(3){color:var(--accent)}
 .qasks .ok{color:var(--green);font-weight:600} .qasks .wait{color:var(--red);font-weight:600}
 .issue.grey .ititle::before{background:var(--line-strong)}
 .ibody p{margin:10px 0}
@@ -626,7 +629,7 @@ function renderQm(){
   if(S.qmode==="mine"){
     const asks=S.qm.flatMap(a=>(a.asksMine||[]).map((x,j)=>({...x,a,j})));
     const rows=asks.filter(x=>hit(x.a)||(q&&String(x.what).toLowerCase().includes(q))).sort((x,y)=>(x.done-y.done)||String(y.at).localeCompare(String(x.at)));
-    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}<div class="editonly" style="margin-top:4px"><button class="qbtn" data-act="qask" data-id="${esc(x.a.id)}" data-i="${x.j}">${x.done?"되돌리기":"완료 처리"}</button></div></td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
+    el.innerHTML=modes+head+(rows.length?`<div class="tbl-wrap"><table class="tt"><thead><tr><th>상태</th><th>요청 내용</th><th>안건</th><th>요청자</th><th>요청일</th><th>기한</th></tr></thead><tbody>${rows.map(x=>`<tr data-qopen="${esc(x.a.id)}" class="qrow" title="안건 자세히 보기"><td>${x.done?'<span class="pill p-done">완료</span>':'<span class="pill p-red">대기</span>'}<div class="editonly" style="margin-top:4px"><button class="qbtn" data-act="qask" data-id="${esc(x.a.id)}" data-i="${x.j}">${x.done?"되돌리기":"완료 처리"}</button></div></td><td>${esc(x.what)}</td><td>${esc(x.a.title)}</td><td>${esc(x.from||"")}</td><td class="num">${esc(dshort(x.at))}</td><td>${x.due?dueTxt(x.due):""}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">품질검사팀에 온 요청이 없어요.</div>`);
     return;
   }
   const cnt=s=>S.qm.filter(a=>(a.stage||"상정")===s).length;
@@ -973,6 +976,7 @@ document.addEventListener("click",e=>{
   const dr=e.target.closest("[data-def]"); if(dr){ const k=dr.dataset.kind; const x=S[k].find(y=>y.id===dr.dataset.def); if(x) openDef(k,x,false); return; }
   const ds=e.target.closest("[data-dstat]"); if(ds){ S.dstat=ds.dataset.dstat; render(); return; }
   const bt=e.target.closest("[data-btab]"); if(bt){ location.hash=bt.dataset.btab; return; }
+  const qr=e.target.closest("tr[data-qopen]"); if(qr&&!e.target.closest("button")){ openQm(qr.dataset.qopen); return; }
   const hr=e.target.closest("#hits .hr"); if(hr){
     if(hr.dataset.qopen){ openQm(hr.dataset.qopen); return; }
     if(hr.dataset.act==="trace"){ S.tsel=hr.dataset.id; S.tmode="serial"; S.view="trace"; if(location.hash!=="#trace") history.pushState(null,"","#trace"); render(); scrollToCard(`#v-trace tr[data-key="${CSS.escape(hr.dataset.id)}"]`); return; }
