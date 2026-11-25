@@ -26,6 +26,7 @@ type Note = {
   issueId: string;
   defKind: string;
   defId: string;
+  qmId: string; // 품질회의 안건 id (2026-11-25)
   what: string;
   result: string;
   verdict: string;
@@ -67,6 +68,7 @@ function clean(raw: unknown): Note | string {
     issueId: str(r.issueId, 80),
     defKind: ["iqc", "field"].includes(str(r.defKind, 10)) ? str(r.defKind, 10) : "",
     defId: str(r.defId, 80),
+    qmId: str(r.qmId, 80),
     what,
     result: str(r.result, 4000),
     verdict,

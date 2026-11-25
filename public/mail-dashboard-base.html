@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
+<!-- 클비서 상황판 웹 사본 · 만든 시각 2026-11-25 14:18 -->
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="mail-dashboard-source" content="/api/mail-dashboard">
@@ -170,18 +171,6 @@ nav.tabs a[aria-current="page"] .cnt{background:rgba(255,255,255,.22);color:inhe
 .rsteps i{flex:1;height:4px;border-radius:2px;background:var(--line)}
 .rsteps i.on{background:var(--accent)}
 .ysec{font-size:14px;margin:20px 0 6px;display:flex;gap:8px;align-items:baseline}
-/* 이번 주 일정 한 줄 */
-.week{margin-top:10px;display:grid;grid-template-columns:repeat(var(--wd,5),minmax(0,1fr));gap:6px}
-@media (max-width:640px){.week{display:flex;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}.week::-webkit-scrollbar{display:none}.wday{flex:0 0 132px}}
-.wday{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;min-width:0}
-.wday.today{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
-.wday .wd{font-size:11.5px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between}
-.wday.today .wd{color:var(--accent)}
-.wday .wi{display:block;font-size:12px;line-height:1.35;margin-top:3px;padding:2px 5px;border-radius:5px;background:var(--soft);color:var(--ink);cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:0;text-align:left;width:100%}
-.wday .wi:hover{outline:1px solid var(--accent)}
-.wday .wi.meet{background:var(--accent-soft);color:var(--accent);font-weight:600}
-.wday .wi.over{background:var(--red-bg);color:var(--red);font-weight:600}
-.wday .none{font-size:12px;color:var(--muted);margin-top:3px}
 /* 협력사 탭 */
 .sgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:start}
 @media (max-width:860px){.sgrid{grid-template-columns:1fr}}
@@ -350,7 +339,6 @@ dialog textarea{min-height:200px;resize:vertical}
     <button class="kpi" data-go="field" data-rma="1" title="RMA 진행 중 · 한 단계에서 7일 넘게 정체된 건"><span class="n" id="k-rma">–</span><span class="l">RMA 진행 · 정체 <span id="k-rma-st">0</span></span></button>
   </div>
 
-  <section class="week" id="week" aria-label="이번 주 일정"></section>
 
   <nav class="tabs" aria-label="보기">
     <a href="#issues" data-v="issues" title="이슈별 묶음">이슈<span class="cnt" id="c-issues">0</span></a>
@@ -461,7 +449,11 @@ function visibleIssues(){
     if(S.onlyDue){ const n=dday(i.due); if(n==null||n>3) return false; }
     if(q && !hitTest(hayIssue(i),{raw:q,c:compactQ(q)})) return false;
     return true;
-  }).sort((a,b)=>{ const o={red:0,yellow:1,white:2}; return (o[a.level]-o[b.level]) || ((dday(a.due)??999)-(dday(b.due)??999)) || String(b.updatedAt).localeCompare(String(a.updatedAt)); });
+  }).sort((a,b)=>{ const o={red:0,yellow:1,white:2}; return ((o[a.level]??3)-(o[b.level]??3)) || lastMailAt(b).localeCompare(lastMailAt(a)); });
+}
+// 2026-11-25 사용자 요청: 같은 색 안에서는 마지막 메일이 온 순서 (기한·갱신 시각 아님)
+function lastMailAt(i){
+  return (i.mails||[]).reduce((m,x)=>String(x.at||"")>m?String(x.at):m,"") || String(i.updatedAt||"");
 }
 
 /* ---------- 통합 검색: 검색어가 있으면 어느 탭에 있든 모든 데이터를 찾아 위에 묶어 보여 준다 ---------- */
@@ -491,7 +483,7 @@ function renderHits(){
     ["품질회의", S.qm.filter(a=>hitTest(hayQm(a),q)).sort((a,b)=>String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt))),
       a=>`<div class="hr" data-qopen="${esc(a.id)}"><span class="pill ${a.stage==="종결"?"p-done":"p-white"}">${esc(QST_T[a.stage]||a.stage||"상정")}</span><span class="t">${markQ(a.title,q)}</span><span class="d">${esc(dshort(a.lastAt||a.raisedAt))}</span><span class="s">${esc(a.lastWhat||"")}</span></div>`],
     ["내 확인 기록", sortNotes(allNotes().filter(n=>hitTest([n.what,n.result,n.verdict,(n.codes||[]).join(" "),n.part,n.maker].join(" "),q))),
-      n=>`<div class="hr" data-hnote="${esc(n.id)}"><span class="pill ${VERD[n.verdict]||"v-no"}">${esc(n.verdict||"기록")}</span><span class="t">${markQ(n.what||"",q)}</span><span class="d">${esc(dshort(n.date))}</span><span class="s">${esc((n.codes||[]).join(", "))}${n.result?" — "+esc(String(n.result).slice(0,80)):""}</span></div>`],
+      n=>`<div class="hr" data-hnote="${esc(n.id)}"><span class="pill ${VERD[n.verdict]||"v-no"}">${esc(n.verdict||"기록")}</span><span class="t">${markQ(n.what||"",q)}</span><span class="d">${esc(dshort(n.date))}</span><span class="s">${(()=>{ const qa=n.qmId&&S.qm.find(x=>x.id===n.qmId), is=n.issueId&&byId(n.issueId); return qa?"품질회의: "+esc(qa.title)+" · ":is?"이슈: "+esc(is.title)+" · ":""; })()}${esc((n.codes||[]).join(", "))}${n.result?" — "+esc(String(n.result).slice(0,80)):""}</span></div>`],
     ["부탁", S.asks.filter(a=>hitTest(hayAsk(a),q)),
       a=>`<div class="hr" data-go="asks"><span class="pill p-white">${esc((STAGES.find(s=>s[0]===a.stage)||[,""])[1])}</span><span class="t">${markQ(a.what,q)}</span><span class="d">${esc(a.to||"")}</span></div>`]
   ].filter(g=>g[1].length);
@@ -541,7 +533,6 @@ function render(){
   $("#showClosed").hidden = $("#onlyNew").hidden = plain;
   $("#q").placeholder = "전체 검색 — S/N, 품번, LOT, 제목, 사람, 협력사…";
   ({issues:renderIssues, asks:renderAsks, sup:renderSup, check:renderCheck, trace:renderTrace, log:renderLog, ylink:renderYlink, qmeet:renderQm, iqc:()=>renderDef("iqc"), field:()=>renderDef("field")})[S.view]();
-  renderWeek();
   $("#c-sup").textContent=S.sw.filter(x=>x.status!=="done").length;
   $("#c-check").textContent=checkItems().length;
   renderHits();
@@ -733,6 +724,7 @@ function qmCard(a, since){
       <div class="qgrid"><div><b>현상</b>${esc(a.symptom||"–")}</div><div><b>원인</b>${esc(a.cause||"아직 확인 전")}</div><div><b>대책·조치</b>${esc(a.action||"아직 없음")}</div></div>
       ${(a.asksMine||[]).length?`<div class="note">품질검사팀 요청</div><ul class="qasks">${a.asksMine.map((x,j)=>`<li><span class="${x.done?"ok":"wait"}">${x.done?"✓ 완료":"● 대기"}</span> ${esc(x.what)} <button class="qbtn editonly" data-act="qask" data-id="${esc(a.id)}" data-i="${j}">${x.done?"대기로 되돌리기":"완료 처리"}</button> <span class="note">— ${esc(x.from||"")} ${esc(dshort(x.at))}${x.due?" · 기한 ":""}</span>${x.due?dueTxt(x.due):""}</li>`).join("")}</ul>`:""}
       ${fl.length?`<div class="rel"><span class="note">필드 불량 대장</span>${fl.map(x=>`<button class="tchip" data-def="${esc(x.id)}" data-kind="field">${esc(x.sn)} · ${esc(dshort(x.date))}</button>`).join("")}</div>`:""}
+      ${(()=>{ const cs=[...new Set([...qmSns(a), ...(has(a.partSn)?splitSn(a.partSn):[])])]; return notesBlock(notesFor({qmId:a.id,codes:cs}),{qmId:a.id,codes:cs.slice(0,6)}); })()}
       ${(a.meetings||[]).length?`<p class="note">회의에서 다룬 날: ${a.meetings.map(d=>esc(dshort(d))).join(", ")}</p>`:""}
       <ul class="thread">${ev.map(e=>`<li><span class="who">${esc(e.by)}</span><span class="when">${esc(String(e.at||"").replace("T"," ").slice(5,16))}</span> <span class="pill p-proj">${esc(e.kind)}</span><div class="gist">${esc(e.what)}</div>${thumbRow(e.mid)}${ol(e.mid)}</li>`).join("")}</ul>
       <div class="actions editonly"><button data-act="qclose" data-id="${esc(a.id)}" class="${closed?"":"primary"}">${closed?"다시 열기":"종결 처리"}</button><label class="note">단계 <select data-qmset="${esc(a.id)}">${QST.map(s=>`<option value="${s}" ${s===(a.stage||"상정")?"selected":""}>${QST_T[s]}</option>`).join("")}</select></label>${a.stageManual?'<span class="note">직접 정한 단계예요 (메일 정리가 바꾸지 않아요)</span>':""}</div>
@@ -755,33 +747,6 @@ function renderQm(){
   xs=xs.filter(hit).sort((a,b)=>(qmOpenAsks(b).length>0)-(qmOpenAsks(a).length>0) || String(b.lastAt||b.raisedAt).localeCompare(String(a.lastAt||a.raisedAt)));
   const sub = S.qmode==="next" ? `<p class="note">지난 회의(${esc(dshort(last))}) 뒤에 새로 상정됐거나 진행 소식이 온 안건이에요. 회의 들어가기 전에 이것만 보시면 돼요.</p>` : `<p class="note">종결 안건은 '종결' 칩을 눌러 보세요.</p>`;
   el.innerHTML=modes+head+stg+sub+(xs.length?`<div class="list">${xs.map(a=>qmCard(a,last)).join("")}</div>`:`<div class="empty">${S.qmode==="next"?"지난 회의 뒤로 바뀐 안건이 없어요.":"조건에 맞는 안건이 없어요."}</div>`);
-}
-
-/* ---------- 이번 주 일정: 품질회의(월·목), 이슈·요청·대장·협력사 회신 기한을 날짜별로 ---------- */
-function weekItems(d){
-  const out=[]; const w=new Date(d+"T00:00").getDay();
-  if(w===1||w===4) out.push({c:"meet",t:"품질회의 10:00",a:'data-go="qmeet"'});
-  S.issues.filter(i=>i.status!=="closed"&&i.due===d).forEach(i=>out.push({t:i.title,a:`data-open="${esc(i.id)}"`}));
-  S.asks.filter(a=>a.stage!=="done"&&a.due===d).forEach(a=>out.push({t:"요청 · "+a.what,a:'data-go="asks"'}));
-  teamAskRows().filter(x=>!x.done&&x.due===d).forEach(x=>out.push({t:"받은 요청 · "+x.what,a:`data-qopen="${esc(x.a.id)}"`}));
-  ["iqc","field"].forEach(k=>S[k].filter(x=>x.status!=="closed"&&x.due===d).forEach(x=>out.push({t:(k==="iqc"?"수입 · "+(x.partNo||""):"필드 · "+(x.sn||x.model||"")),a:`data-def="${esc(x.id)}" data-kind="${k}"`})));
-  S.sw.filter(x=>x.status!=="done"&&x.due===d).forEach(x=>out.push({t:normSup(x.supplier)+" 회신 기한",a:'data-go="sup"'}));
-  return out;
-}
-function renderWeek(){
-  const el=$("#week"); if(!S.loaded){ el.hidden=true; return; } el.hidden=false;
-  const now=new Date(); now.setHours(0,0,0,0); const wd=now.getDay();
-  // 평일이면 이번 주 월요일, 주말이면 다음 주 월요일부터 보여 준다.
-  const mon=new Date(now); mon.setDate(now.getDate()+(wd===6?2:wd===0?1:1-wd));
-  const days=[...Array(7)].map((_,k)=>{ const x=new Date(mon); x.setDate(mon.getDate()+k); return ymd(x); });
-  const items=Object.fromEntries(days.map(d=>[d,weekItems(d)]));
-  const show=days.filter((d,k)=>k<5||items[d].length);
-  const monS=days[0];
-  const over=S.issues.filter(i=>i.status!=="closed"&&i.due&&i.due<monS).length;
-  const T=ymd(now), W=["일","월","화","수","목","금","토"];
-  el.style.setProperty("--wd",show.length);
-  el.innerHTML=show.map((d,k)=>{ const xs=items[d]; const lim=4;
-    return `<div class="wday${d===T?" today":""}"><div class="wd"><span>${W[new Date(d+"T00:00").getDay()]} ${esc(dshort(d))}</span>${d===T?"<span>오늘</span>":""}</div>${k===0&&over?`<button class="wi over" data-go="issues" data-due="1">지난 기한 ${over}건</button>`:""}${xs.slice(0,lim).map(x=>`<button class="wi ${x.c||""}" ${x.a} title="${esc(x.t)}">${esc(x.t)}</button>`).join("")}${xs.length>lim?`<div class="none">외 ${xs.length-lim}건</div>`:""}${!xs.length&&!(k===0&&over)?'<div class="none">–</div>':""}</div>`; }).join("");
 }
 
 /* ---------- 확인 필요: 자동으로 넣은 내용 중 사람이 확정해야 할 것 ---------- */
@@ -899,9 +864,9 @@ function _allNotes(w){
   const xs=S.notes.map(n=>{ const p=w.get(n.id); return p&&!(n.photos||[]).length&&(p.photos||[]).length?Object.assign({},n,{photos:p.photos}):n; });
   const ids=new Set(S.notes.map(n=>n.id)); return xs.concat(S.webNotes.filter(n=>!ids.has(n.id))); }
 const sortNotes = xs => xs.sort((a,b)=>String(b.date).localeCompare(String(a.date))||String(b.createdAt).localeCompare(String(a.createdAt)));
-function notesFor({issueId="",codes=[],defId=""}){
+function notesFor({issueId="",codes=[],defId="",qmId=""}){
   const cs=new Set(codes.map(ncode).filter(c=>c&&c!=="미확인"));
-  return sortNotes(allNotes().filter(n=>(issueId&&n.issueId===issueId)||(defId&&n.defId===defId)||(n.codes||[]).some(c=>cs.has(ncode(c)))));
+  return sortNotes(allNotes().filter(n=>(issueId&&n.issueId===issueId)||(defId&&n.defId===defId)||(qmId&&n.qmId===qmId)||(n.codes||[]).some(c=>cs.has(ncode(c)))));
 }
 function codesForIssue(i){
   const c=S.trace.filter(t=>(t.issueIds||[]).includes(i.id)).map(t=>t.code);
@@ -921,7 +886,7 @@ function noteItem(n){
   </div>`;
 }
 // ctx: 새 기록을 열 때 미리 채울 대상 {issueId, codes, defKind, defId}
-function ctxAttr(ctx){ return ` data-addnote="1" data-issue="${esc(ctx.issueId||"")}" data-codes="${esc((ctx.codes||[]).join(", "))}" data-dk="${esc(ctx.defKind||"")}" data-did="${esc(ctx.defId||"")}"`; }
+function ctxAttr(ctx){ return ` data-addnote="1" data-issue="${esc(ctx.issueId||"")}" data-codes="${esc((ctx.codes||[]).join(", "))}" data-dk="${esc(ctx.defKind||"")}" data-did="${esc(ctx.defId||"")}" data-qm="${esc(ctx.qmId||"")}"`; }
 function notesBlock(list,ctx){
   if(!list.length) return `<button type="button" class="addnote"${ctxAttr(ctx)}>+ 내 확인 기록</button>`;
   return `<div class="mynotes"><div class="mnh">내 확인 기록 ${list.length}<span class="spacer"></span><button type="button"${ctxAttr(ctx)}>+ 기록</button></div>${list.map(noteItem).join("")}</div>`;
@@ -938,8 +903,8 @@ function openNote(ctx,n){
   $("#nSave").hidden=ro; $("#nMsg").textContent=""; $("#nFile").value="";
   $("#nDel").hidden = !n || ro;   // 삭제는 PC에서, 내가 쓴 기록만 (예전 대장 기록 제외)
   const db_=$("#nDel"); delete db_.dataset.arm; db_.textContent="삭제"; db_.style.background=""; db_.style.color="var(--red)";
-  const iss = (n?n.issueId:ctx.issueId); const is=iss&&byId(iss);
-  $("#nWhere").textContent = [is?"이슈: "+is.title:"", (n?n.defId:ctx.defId)?"불량 대장 "+(n?n.defId:ctx.defId):"", ro&&n&&n.source==="history"?"불량품 히스토리 대장에서 옮겨 온 예전 기록이에요.":"", !db&&!ro?"폰에서 저장하면 다음 메일 정리 때 PC 상황판에도 합쳐져요.":""].filter(Boolean).join(" · ");
+  const iss = (n?n.issueId:ctx.issueId); const is=iss&&byId(iss); const qid=(n?n.qmId:ctx.qmId); const qa=qid&&S.qm.find(x=>x.id===qid);
+  $("#nWhere").textContent = [is?"이슈: "+is.title:"", qa?"품질회의 안건: "+qa.title:"", (n?n.defId:ctx.defId)?"불량 대장 "+(n?n.defId:ctx.defId):"", ro&&n&&n.source==="history"?"불량품 히스토리 대장에서 옮겨 온 예전 기록이에요.":"", !db&&!ro?"폰에서 저장하면 다음 메일 정리 때 PC 상황판에도 합쳐져요.":""].filter(Boolean).join(" · ");
   renderNPrev(); $("#dlgNote").showModal();
 }
 function renderNPrev(){ $("#nPrev").innerHTML=ncur.photos.map((p,k)=>`<span class="ph"><img src="${esc(p.d)}" alt="사진 ${k+1}">${ncur.ro?"":`<button type="button" data-nrm="${k}" aria-label="사진 빼기">✕</button>`}</span>`).join(""); }
@@ -990,7 +955,7 @@ $("#nSave").addEventListener("click",async()=>{
   const codes=[...new Set([...(o?o.codes||[]:c.codes||[]), ...inText])];
   const id = ncur.id || ("n-"+date.replace(/-/g,"")+"-"+Math.random().toString(36).slice(2,8));
   const data={id,date,codes,what,result:"",verdict:o?o.verdict||"":"",photos:ncur.photos,
-    issueId:o?o.issueId||"":c.issueId||"", defKind:o?o.defKind||"":c.defKind||"", defId:o?o.defId||"":c.defId||"",
+    issueId:o?o.issueId||"":c.issueId||"", defKind:o?o.defKind||"":c.defKind||"", defId:o?o.defId||"":c.defId||"", qmId:o?o.qmId||"":c.qmId||"",
     by:"김원수", source:o?o.source:(db?"pc":"phone"), createdAt:o?o.createdAt:now, updatedAt:now};
   $("#nSave").disabled=true; msg.className="msg"; msg.textContent="저장하는 중…";
   try{
@@ -1004,7 +969,7 @@ $("#nSave").addEventListener("click",async()=>{
 });
 document.addEventListener("click",e=>{
   const a=e.target.closest("[data-addnote]"); if(a){ e.preventDefault(); e.stopPropagation();
-    openNote({issueId:a.dataset.issue, codes:splitSn(a.dataset.codes), defKind:a.dataset.dk, defId:a.dataset.did}, null); return; }
+    openNote({issueId:a.dataset.issue, codes:splitSn(a.dataset.codes), defKind:a.dataset.dk, defId:a.dataset.did, qmId:a.dataset.qm}, null); return; }
   const z=e.target.closest("img[data-nzoom]"); if(z){ e.stopPropagation(); const n=allNotes().find(x=>x.id===z.dataset.nzoom); const p=n&&(n.photos||[])[Number(z.dataset.k)]; if(!p) return;
     $("#imgBig").src=p.d; $("#imgCap").textContent=`${dshort(n.date)} ${n.what||""}`; $("#dlgImg").showModal(); return; }
   const hn=e.target.closest("[data-hnote]"); if(hn){ e.stopPropagation(); const n=allNotes().find(x=>x.id===hn.dataset.hnote); if(n) openNote({},n); return; }
