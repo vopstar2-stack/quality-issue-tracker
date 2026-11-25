@@ -128,6 +128,14 @@ async function ensureSchema(pool: Pool): Promise<void> {
       moved_at TIMESTAMPTZ NOT NULL DEFAULT now()
     );
 
+    -- 메일 상황판 웹 사본(폰)에서 누른 이슈·품질회의 버튼 변경. 대상 문서 1개당 1행(누를 때마다 합침).
+    -- 사내 PC의 메일 정리가 읽어 claude.ai 상황판 DB에 옮긴 뒤 지운다.
+    CREATE TABLE IF NOT EXISTS mail_web_edits (
+      path TEXT PRIMARY KEY,
+      data JSONB NOT NULL,
+      at TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
     CREATE TABLE IF NOT EXISTS mail_notes (
       id TEXT PRIMARY KEY,
       data JSONB NOT NULL,
