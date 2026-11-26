@@ -64,7 +64,7 @@ export default function RootLayout({
                   <path d="M3 3v18h18" />
                   <path d="M7 15l3-4 3 2 4-6" />
                 </svg>
-                품질검사 대시보드
+                QC보드
               </Link>
               {/* 넓은 화면은 왼쪽에 상황판이 늘 떠 있으니 폰·좁은 화면에서만 보이는 링크 */}
               <Link href="/view/mail" className={`${navItemClass} lg:hidden`}>
