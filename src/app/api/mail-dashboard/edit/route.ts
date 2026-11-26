@@ -21,6 +21,7 @@ const DAY = /^(\d{4}-\d{2}-\d{2})?$/;
 type Patch = Record<string, unknown>;
 type Row = { path: string; data: Patch; at: string };
 
+const LOCS = ["현장 장착", "회수 중", "품질팀 보관", "HW개발팀", "협력사", "창고 재고", "폐기", "미상"];
 const KEY = /^[A-Za-z][A-Za-z0-9]{0,30}$/;
 const DEF_BLOCK = new Set(["id", "mails", "traceIds"]);
 const str = (v: unknown, n = 4000) => typeof v === "string" && v.length <= n;
@@ -46,6 +47,10 @@ function clean(coll: string, data: Patch): Patch | string {
     } else if (coll === "trace") {
       if (k === "status" && (v === "open" || v === "closed")) out[k] = v;
       else if (k === "checkedAt" && str(v, 40)) out[k] = v;
+      // 추적성 개선 (2026-11-26): 현재 위치 칸, '근거 없음' 확인
+      else if (k === "loc" && (v === "" || LOCS.includes(String(v)))) out[k] = v;
+      else if ((k === "locAt" || k === "srcOkAt") && str(v, 40)) out[k] = v;
+      else if (k === "locManual" && typeof v === "boolean") out[k] = v;
       else return `바꿀 수 없는 항목입니다: ${k}`;
     } else if (coll === "supwait") {
       if (k === "status" && (v === "open" || v === "done")) out[k] = v;
