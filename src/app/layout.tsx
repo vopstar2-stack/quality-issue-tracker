@@ -45,13 +45,6 @@ export default function RootLayout({
                 </svg>
                 메모
               </Link>
-              <Link href="/issues" className={navItemClass}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
-                  <path d="M9 6h11M9 12h11M9 18h11" />
-                  <path d="M4 6h.01M4 12h.01M4 18h.01" />
-                </svg>
-                이슈 목록
-              </Link>
               <Link href="/view/crm" className={navItemClass}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <rect x="4" y="3" width="16" height="18" rx="1" />
