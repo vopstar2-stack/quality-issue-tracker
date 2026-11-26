@@ -59,18 +59,6 @@ export default function RootLayout({
                 </svg>
                 CRM
               </Link>
-              <a
-                href="https://raymedi-my.sharepoint.com/:x:/r/personal/wonsoo83_kim_raymedical_com/_layouts/15/doc2.aspx?sourcedoc=%7B12BA563F-74DA-4C57-80D7-2F4BFDD1CBEE%7D&file=Book%208.xlsx&action=editNew&mobileredirect=true&wdOrigin=ONENOTEONLINE.SHELL%2CAPPHOME-WEB.BANNER.NEWBLANK&wdPreviousSession=1d065c56-7183-48cf-b0ce-749b7310a42d&wdPreviousSessionSrc=AppHomeWeb&ct=1773646357773"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={navItemClass}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
-                  <rect x="3" y="3" width="18" height="18" rx="1" />
-                  <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-                </svg>
-                Book 8
-              </a>
               <Link href="/view/dashboard" className={navItemClass}>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-3.5 w-3.5 shrink-0">
                   <path d="M3 3v18h18" />
